@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', function () {
     // Inicializar Swiper responsive: slide en móvil, coverflow en desktop
-    const swiper = new Swiper('.featured-swiper', {
+    window.featuredSwiper = new Swiper('.featured-swiper', {
         effect: window.innerWidth >= 768 ? 'coverflow' : 'slide',
         grabCursor: true,
         centeredSlides: true,
