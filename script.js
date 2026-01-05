@@ -934,7 +934,8 @@ document.addEventListener('DOMContentLoaded', function () {
         });
 
         // 2. Static Items
-        document.querySelectorAll('.gallery-item[data-dynamic="false"]').forEach(item => {
+        // Fix: Static items don't have data-dynamic="false", they just don't have the attribute.
+        document.querySelectorAll('.gallery-item:not([data-dynamic="true"])').forEach(item => {
             const key = ensureGalleryKey(item);
             const img = item.querySelector('img');
             const video = item.querySelector('video');
