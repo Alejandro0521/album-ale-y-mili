@@ -1802,8 +1802,13 @@ document.addEventListener('DOMContentLoaded', function () {
                 // Usar date si existe, sino usar uploadedAt
                 const itemDate = item.date || item.uploadedAt;
                 if (isValidDate(itemDate)) {
-                    // Crear copia con fecha normalizada
-                    allItems.push({ ...item, date: itemDate });
+                    // Crear copia con campos normalizados
+                    allItems.push({
+                        ...item,
+                        date: itemDate,
+                        mediaUrl: item.mediaUrl || item.imageUrl, // Normalizar campo de imagen
+                        mediaType: item.mediaType || 'image' // Default a imagen
+                    });
                     addedIds.add(item.id);
                 }
             }
