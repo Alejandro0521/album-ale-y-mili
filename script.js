@@ -1205,34 +1205,41 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function refreshDynamicItems() {
-        // [NEW] Deduplication Logic for Main Gallery
-        // We prioritize firebaseItems over fallbackItems (local).
+        // [NEW] Deep Deduplication Logic for Main Gallery
 
+        // 1. Deduplicate Firebase Items (in case DB has dupes)
+        const uniqueFirebaseItems = [];
         const firebaseSignatures = new Set();
+
         firebaseItems.forEach(item => {
+            let signature = item.id; // Default to ID
+            // If data is sufficient, use content signature to catch duplicate uploads
             if (item.title && item.date) {
-                // Use the same normalization as timeline
                 const normTitle = normalizeForDedup(item.title);
-                // Assuming item.date is YYYY-MM-DD or standard-ish
-                // If item.date is a full ISO string, we might want just the date part. 
-                // But usually for main gallery we want exact matches if they are copies.
                 const datePart = item.date.split('T')[0];
-                firebaseSignatures.add(`${normTitle}|${datePart}`);
+                signature = `${normTitle}|${datePart}`;
+            }
+
+            if (!firebaseSignatures.has(signature)) {
+                firebaseSignatures.add(signature);
+                uniqueFirebaseItems.push(item);
             }
         });
 
-        // Filter fallbackItems that are already in firebaseItems
+        // 2. Filter fallbackItems (Local) that are in Firebase
         const uniqueFallbackItems = fallbackItems.filter(item => {
-            if (!item.title || !item.date) return true; // Keep if incomplete data (can't determine dupe)
-            const normTitle = normalizeForDedup(item.title);
-            const datePart = item.date.split('T')[0];
-            const signature = `${normTitle}|${datePart}`;
-
-            // If signature exists in firebase, it's a duplicate -> skip it
-            return !firebaseSignatures.has(signature);
+            // If local item matches a Firebase item signature, skip it
+            if (item.title && item.date) {
+                const normTitle = normalizeForDedup(item.title);
+                const datePart = item.date.split('T')[0];
+                const signature = `${normTitle}|${datePart}`;
+                return !firebaseSignatures.has(signature);
+            }
+            return true;
         });
 
-        const combined = [...firebaseItems, ...uniqueFallbackItems].sort((a, b) => {
+        // 3. Combine unique lists
+        const combined = [...uniqueFirebaseItems, ...uniqueFallbackItems].sort((a, b) => {
             const tsA = typeof a.createdAt === 'number' ? a.createdAt : 0;
             const tsB = typeof b.createdAt === 'number' ? b.createdAt : 0;
             return tsB - tsA;

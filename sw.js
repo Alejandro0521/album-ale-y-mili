@@ -1,12 +1,12 @@
 // Service Worker para PWA - Ale y Mili Album
 const CACHE_NAME = 'ale-mili-album-v5'; // v5: Forzar actualización para fix de duplicados
 const STATIC_ASSETS = [
-    '/',
-    '/index.html',
-    '/style.css',
-    '/script.js',
-    '/firebase-config.js',
-    '/manifest.json'
+    './',
+    './index.html',
+    './style.css',
+    './script.js',
+    './firebase-config.js',
+    './manifest.json'
 ];
 
 // Instalación del Service Worker
