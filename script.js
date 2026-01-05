@@ -1205,7 +1205,34 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function refreshDynamicItems() {
-        const combined = [...firebaseItems, ...fallbackItems].sort((a, b) => {
+        // [NEW] Deduplication Logic for Main Gallery
+        // We prioritize firebaseItems over fallbackItems (local).
+
+        const firebaseSignatures = new Set();
+        firebaseItems.forEach(item => {
+            if (item.title && item.date) {
+                // Use the same normalization as timeline
+                const normTitle = normalizeForDedup(item.title);
+                // Assuming item.date is YYYY-MM-DD or standard-ish
+                // If item.date is a full ISO string, we might want just the date part. 
+                // But usually for main gallery we want exact matches if they are copies.
+                const datePart = item.date.split('T')[0];
+                firebaseSignatures.add(`${normTitle}|${datePart}`);
+            }
+        });
+
+        // Filter fallbackItems that are already in firebaseItems
+        const uniqueFallbackItems = fallbackItems.filter(item => {
+            if (!item.title || !item.date) return true; // Keep if incomplete data (can't determine dupe)
+            const normTitle = normalizeForDedup(item.title);
+            const datePart = item.date.split('T')[0];
+            const signature = `${normTitle}|${datePart}`;
+
+            // If signature exists in firebase, it's a duplicate -> skip it
+            return !firebaseSignatures.has(signature);
+        });
+
+        const combined = [...firebaseItems, ...uniqueFallbackItems].sort((a, b) => {
             const tsA = typeof a.createdAt === 'number' ? a.createdAt : 0;
             const tsB = typeof b.createdAt === 'number' ? b.createdAt : 0;
             return tsB - tsA;
