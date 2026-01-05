@@ -3230,302 +3230,158 @@ document.addEventListener('DOMContentLoaded', function () {
     // Iniciar partículas después de un pequeño delay
     setTimeout(startParticles, 1000);
 
-    // --- EDIT SYSTEM IMPLEMENTATION ---
-    // Wrapped in safety check to prevent breaking Firebase loading
-    if (document.getElementById('editModal')) {
-        try {
-            const editModal = document.getElementById('editModal');
-            const editModalClose = document.getElementById('editModalClose');
-            const editForm = document.getElementById('editForm');
-            const editTitleInput = document.getElementById('editDescription');
-            const editDateInput = document.getElementById('editDate');
-            const editItemIdInput = document.getElementById('editItemId');
-            const editItemKeyInput = document.getElementById('editItemKey');
-            const editItemTypeInput = document.getElementById('editItemType');
+    // --- SISTEMA DE EDICIÓN SIMPLIFICADO ---
+    // Similar a los likes: guarda TODO en Firebase para sincronizar en todos los dispositivos
+    (function initEditSystem() {
+        const editModal = document.getElementById('editModal');
+        if (!editModal) return;
 
-            // Load Static Edits from Firebase
-            function loadStaticEdits() {
-                if (!firebaseDb) {
-                    // Fallback a localStorage si no hay Firebase
-                    try {
-                        const raw = localStorage.getItem(STATIC_EDITS_KEY);
-                        if (raw) {
-                            storedStaticEdits = JSON.parse(raw);
-                        }
-                    } catch (e) {
-                        console.warn('Error loading static edits from localStorage', e);
-                        storedStaticEdits = {};
-                    }
+        const editModalClose = document.getElementById('editModalClose');
+        const editForm = document.getElementById('editForm');
+        const editTitleInput = document.getElementById('editDescription');
+        const editDateInput = document.getElementById('editDate');
+        const editItemKeyInput = document.getElementById('editItemKey');
+
+        // Cerrar modal
+        if (editModalClose) {
+            editModalClose.onclick = () => editModal.style.display = 'none';
+        }
+        editModal.onclick = (e) => {
+            if (e.target === editModal) editModal.style.display = 'none';
+        };
+
+        // Abrir modal al hacer clic en botón de editar
+        document.addEventListener('click', (e) => {
+            const editBtn = e.target.closest('.edit-btn');
+            if (!editBtn) return;
+
+            e.preventDefault();
+            e.stopPropagation();
+
+            const item = editBtn.closest('.gallery-item');
+            if (!item) return;
+
+            const key = ensureGalleryKey(item);
+            const titleEl = item.querySelector('.photo-info h3');
+
+            // Cargar valores actuales
+            let currentTitle = titleEl ? titleEl.textContent : '';
+            let currentDate = '';
+
+            // Si ya tiene edición guardada, usar esos valores
+            if (storedStaticEdits[key]) {
+                currentTitle = storedStaticEdits[key].title || currentTitle;
+                currentDate = storedStaticEdits[key].date || '';
+            }
+
+            editItemKeyInput.value = key;
+            editTitleInput.value = currentTitle;
+            editDateInput.value = currentDate;
+            editModal.style.display = 'flex';
+        }, true);
+
+        // Guardar cambios - SIEMPRE en Firebase
+        if (editForm) {
+            editForm.onsubmit = async (e) => {
+                e.preventDefault();
+
+                const key = editItemKeyInput.value;
+                const newTitle = editTitleInput.value.trim();
+                const newDate = editDateInput.value;
+
+                if (!key) {
+                    alert('Error: No se pudo identificar la imagen.');
                     return;
                 }
 
-                // Cargar desde Firebase
-                firebaseDb.collection('imageEdits').get()
-                    .then(snapshot => {
-                        snapshot.forEach(doc => {
-                            const data = doc.data();
-                            const dateValue = data.date || '';
+                const saveBtn = editForm.querySelector('.save-edit-btn');
+                const originalText = saveBtn.innerHTML;
+                saveBtn.disabled = true;
+                saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
 
-                            // VALIDAR: Solo guardar si la fecha es válida
-                            if (dateValue && dateValue !== 'NaN' && dateValue !== 'undefined' && dateValue !== 'null') {
-                                storedStaticEdits[doc.id] = {
-                                    title: data.title || '',
-                                    date: dateValue
-                                };
-                            } else {
-                                // Limpiar datos inválidos de Firebase
-                                console.warn('Fecha inválida encontrada, limpiando:', doc.id, dateValue);
-                                firebaseDb.collection('imageEdits').doc(doc.id).delete()
-                                    .catch(e => console.warn('Error limpiando dato inválido', e));
-                            }
+                try {
+                    // SIEMPRE guardar en Firebase para que todos vean los cambios
+                    if (firebaseDb) {
+                        await firebaseDb.collection('imageEdits').doc(key).set({
+                            title: newTitle,
+                            date: newDate,
+                            editedAt: firebase.firestore.FieldValue.serverTimestamp()
                         });
-                        applyStaticEdits();
-                    })
-                    .catch(e => {
-                        console.warn('Error loading edits from Firebase', e);
-                    });
-            }
-
-            function saveStaticEdits() {
-                if (!firebaseDb) {
-                    // Fallback a localStorage
-                    try {
-                        localStorage.setItem(STATIC_EDITS_KEY, JSON.stringify(storedStaticEdits));
-                    } catch (e) {
-                        console.error('Error saving static edits', e);
-                    }
-                    return;
-                }
-
-                // Guardar en Firebase (no necesita save explícito, se hace en tiempo real)
-                // La función de edición ya guarda directamente
-            }
-
-            function applyStaticEdits() {
-                // iterate over all gallery items, if key matches, update DOM
-                document.querySelectorAll('.gallery-item').forEach(item => {
-                    const key = ensureGalleryKey(item);
-                    if (storedStaticEdits[key]) {
-                        const data = storedStaticEdits[key];
-                        const titleEl = item.querySelector('.photo-info h3');
-                        if (titleEl && data.title) titleEl.textContent = data.title;
-                    }
-                });
-            }
-
-            function injectEditButtons() {
-                document.querySelectorAll('.gallery-item').forEach(item => {
-                    let overlay = item.querySelector('.photo-overlay');
-                    if (!overlay) {
-                        const container = item.querySelector('.photo-container');
-                        if (container) {
-                            overlay = document.createElement('div');
-                            overlay.className = 'photo-overlay';
-                            container.appendChild(overlay);
-                        } else {
-                            return;
-                        }
-                    }
-
-                    // Check if edit button exists
-                    if (!overlay.querySelector('.edit-btn')) {
-                        const editBtn = document.createElement('button');
-                        editBtn.className = 'edit-btn';
-                        editBtn.title = 'Editar';
-                        editBtn.innerHTML = '<i class="fas fa-pen"></i>';
-                        editBtn.addEventListener('click', (e) => {
-                            e.stopPropagation();
-                            openEditModal(item);
-                        });
-                        if (overlay.firstChild) {
-                            overlay.insertBefore(editBtn, overlay.firstChild);
-                        } else {
-                            overlay.appendChild(editBtn);
-                        }
+                        // El listener de onSnapshot actualizará storedStaticEdits automáticamente
                     } else {
-                        const existingBtn = overlay.querySelector('.edit-btn');
-                        if (!existingBtn.dataset.editBound) {
-                            existingBtn.dataset.editBound = 'true';
-                            existingBtn.addEventListener('click', (e) => {
-                                e.stopPropagation();
-                                openEditModal(item);
-                            });
-                        }
+                        // Fallback local
+                        storedStaticEdits[key] = { title: newTitle, date: newDate };
+                        localStorage.setItem(STATIC_EDITS_KEY, JSON.stringify(storedStaticEdits));
                     }
-                });
-            }
 
-            function openEditModal(item) {
-                if (!item) return;
-                const key = ensureGalleryKey(item);
-                const isDynamic = item.dataset.dynamic === 'true';
-                const docId = item.getAttribute('data-doc-id');
-
-                let type = 'static';
-                let currentTitle = '';
-                let currentDate = '';
-
-                const titleEl = item.querySelector('.photo-info h3');
-                currentTitle = titleEl ? titleEl.textContent : '';
-
-                if (isDynamic) {
-                    const dataItem = firebaseItems.find(i => i.id === docId) || fallbackItems.find(i => i.id === docId);
-                    if (dataItem) {
-                        type = (firebaseItems.some(i => i.id === docId)) ? 'firebase' : 'local';
-                        currentTitle = dataItem.title;
-                        currentDate = dataItem.date || '';
+                    // Actualizar el DOM inmediatamente
+                    const item = findGalleryItemByKey(key);
+                    if (item) {
+                        const titleEl = item.querySelector('.photo-info h3');
+                        if (titleEl) titleEl.textContent = newTitle;
                     }
-                } else {
-                    if (storedStaticEdits[key]) {
-                        currentTitle = storedStaticEdits[key].title || currentTitle;
-                        currentDate = storedStaticEdits[key].date || '';
-                    }
+
+                    editModal.style.display = 'none';
+                    showBanner('Cambios guardados correctamente', { persistent: false });
+
+                } catch (err) {
+                    console.error('Error guardando edición:', err);
+                    alert('Error al guardar: ' + err.message);
+                } finally {
+                    saveBtn.disabled = false;
+                    saveBtn.innerHTML = originalText;
                 }
+            };
+        }
 
-                editItemIdInput.value = docId || '';
-                editItemKeyInput.value = key;
-                editItemTypeInput.value = type;
-                editTitleInput.value = currentTitle;
-                editDateInput.value = currentDate;
+        // Listener en tiempo real para sincronizar ediciones de Firebase
+        if (firebaseDb) {
+            firebaseDb.collection('imageEdits').onSnapshot(snapshot => {
+                snapshot.docChanges().forEach(change => {
+                    const key = change.doc.id;
+                    const data = change.doc.data();
 
-                editModal.style.display = 'flex';
-            }
-
-            if (editModalClose) {
-                editModalClose.addEventListener('click', () => {
-                    editModal.style.display = 'none';
+                    if (change.type === 'added' || change.type === 'modified') {
+                        storedStaticEdits[key] = {
+                            title: data.title || '',
+                            date: data.date || ''
+                        };
+                        // Actualizar DOM
+                        const item = findGalleryItemByKey(key);
+                        if (item) {
+                            const titleEl = item.querySelector('.photo-info h3');
+                            if (titleEl && data.title) titleEl.textContent = data.title;
+                        }
+                    } else if (change.type === 'removed') {
+                        delete storedStaticEdits[key];
+                    }
                 });
-            }
+            });
+        }
 
-            window.addEventListener('click', (e) => {
-                if (e.target === editModal) {
-                    editModal.style.display = 'none';
+        // Inyectar botones de editar en todas las fotos
+        function addEditButtons() {
+            document.querySelectorAll('.gallery-item').forEach(item => {
+                let overlay = item.querySelector('.photo-overlay');
+                if (!overlay) {
+                    const container = item.querySelector('.photo-container');
+                    if (!container) return;
+                    overlay = document.createElement('div');
+                    overlay.className = 'photo-overlay';
+                    container.appendChild(overlay);
+                }
+                if (!overlay.querySelector('.edit-btn')) {
+                    const btn = document.createElement('button');
+                    btn.className = 'edit-btn';
+                    btn.title = 'Editar';
+                    btn.innerHTML = '<i class="fas fa-pen"></i>';
+                    overlay.insertBefore(btn, overlay.firstChild);
                 }
             });
-
-            if (editForm) {
-                editForm.addEventListener('submit', async (e) => {
-                    e.preventDefault();
-                    const newTitle = editTitleInput.value.trim();
-                    const newDate = editDateInput.value;
-                    const type = editItemTypeInput.value;
-                    const key = editItemKeyInput.value;
-                    const docId = editItemIdInput.value;
-
-                    const saveBtn = editForm.querySelector('.save-edit-btn');
-                    const originalBtnText = saveBtn.innerHTML;
-                    saveBtn.disabled = true;
-                    saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
-
-                    try {
-                        if (type === 'firebase') {
-                            if (firebaseDb) {
-                                await firebaseDb.collection('gallery').doc(docId).update({
-                                    title: newTitle,
-                                    // Note: uploadedAt no se actualiza, solo title
-                                });
-                            }
-                        } else if (type === 'local') {
-                            const idx = fallbackItems.findIndex(i => i.id === docId);
-                            if (idx !== -1) {
-                                fallbackItems[idx].title = newTitle;
-                                fallbackItems[idx].date = newDate;
-                                saveFallbackItems();
-                                refreshDynamicItems();
-                            }
-                        } else {
-                            // Static - Guardar en Firebase
-                            storedStaticEdits[key] = { title: newTitle, date: newDate };
-
-                            if (firebaseDb) {
-                                await firebaseDb.collection('imageEdits').doc(key).set({
-                                    title: newTitle,
-                                    date: newDate,
-                                    editedAt: firebase.firestore.FieldValue.serverTimestamp()
-                                });
-                            } else {
-                                // Fallback a localStorage si no hay Firebase
-                                saveStaticEdits();
-                            }
-
-                            applyStaticEdits();
-                            refreshTimeline();
-                        }
-                        editModal.style.display = 'none';
-                        showBanner('Cambios guardados correctamente', { persistent: false });
-
-                    } catch (err) {
-                        console.error('Error saving edits:', err);
-                        alert('Hubo un error al guardar los cambios: ' + err.message);
-                    } finally {
-                        saveBtn.disabled = false;
-                        saveBtn.innerHTML = originalBtnText;
-                    }
-                });
-            }
-
-            const modalEditBtn = document.querySelector('.modal-edit-btn');
-            if (modalEditBtn) {
-                modalEditBtn.style.display = 'inline-block';
-                modalEditBtn.addEventListener('click', () => {
-                    const activeKey = modal.dataset.activeFeatureKey;
-                    const item = findGalleryItemByKey(activeKey);
-                    if (item) {
-                        openEditModal(item);
-                        modal.style.display = 'none';
-                    }
-                });
-            }
-
-            loadStaticEdits();
-            injectEditButtons();
-            applyStaticEdits();
-
-            // LISTENER EN TIEMPO REAL para ediciones
-            if (firebaseDb) {
-                firebaseDb.collection('imageEdits').onSnapshot(snapshot => {
-                    snapshot.docChanges().forEach(change => {
-                        const key = change.doc.id;
-                        const data = change.doc.data();
-
-                        if (change.type === 'added' || change.type === 'modified') {
-                            storedStaticEdits[key] = {
-                                title: data.title || '',
-                                date: data.date || ''
-                            };
-                            applyStaticEdits();
-                            refreshTimeline(); // Actualizar timeline
-                        } else if (change.type === 'removed') {
-                            delete storedStaticEdits[key];
-                            applyStaticEdits();
-                            refreshTimeline(); // Actualizar timeline
-                        }
-                    });
-                });
-            }
-
-            document.addEventListener('click', (e) => {
-                const btn = e.target.closest('.edit-btn');
-                if (btn) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    const item = btn.closest('.gallery-item');
-                    if (item) {
-                        openEditModal(item);
-                    } else {
-                        const parent = btn.closest('.photo-container');
-                        if (parent && parent.parentElement.classList.contains('gallery-item')) {
-                            openEditModal(parent.parentElement);
-                        }
-                    }
-                }
-            }, true);
-
-        } catch (editSystemError) {
-            console.error('Error en sistema de edición:', editSystemError);
-            // No rompe Firebase si el sistema de edición falla
         }
-    }
+
+        addEditButtons();
+    })();
 
     // Asegurar que la UI se actualice al menos una vez al cargar
     setTimeout(() => {
