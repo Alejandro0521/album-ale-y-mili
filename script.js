@@ -1010,7 +1010,12 @@ document.addEventListener('DOMContentLoaded', function () {
         if (window.featuredSwiper) {
             window.featuredSwiper.destroy(true, true);
         }
-        window.featuredSwiper = new Swiper('.featured-swiper', swiperConfig);
+
+        // Desactivar loop si hay 1 o menos slides (incluyendo el placeholder) para evitar glitch visual
+        const shouldLoop = featuredPhotosContainerEl.children.length > 1;
+        const currentConfig = { ...swiperConfig, loop: shouldLoop };
+
+        window.featuredSwiper = new Swiper('.featured-swiper', currentConfig);
     }
 
     function toggleLike(button, targetItem = null) {
