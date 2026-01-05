@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Galeria Oculta - Ale y Mili</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <h1>Galeria Oculta</h1>
+        <p class="hidden-subtitle">Solo para nuestros recuerdos mas privados.</p>
+        <div class="hidden-actions">
+            <button type="button" id="closeHiddenGallery" class="hidden-btn">
+                <i class="fas fa-arrow-left"></i> Volver al album principal
+            </button>
+        </div>
+    </header>
+
+    <main class="hidden-main">
+        <section class="hidden-description">
+            <h2>Recuerdos protegidos</h2>
+            <p>SI NO ERES ALE O EMILI SALTE ANTES QUE SEPA DONDE VIVES .</p>
+        </section>
+
+        <section class="hidden-gallery-section">
+            <h2>Galeria privada</h2>
+            <div class="gallery-container" id="hiddenGallery"></div>
+            <div class="no-hidden-items" id="noHiddenItems" hidden>
+                Aun no hay elementos ocultos. Sube algo para comenzar.
+            </div>
+        </section>
+    </main>
+
+    <section class="admin-panel" id="hiddenAdminPanel">
+        <h2>Subir foto oculta</h2>
+        <p class="admin-hint">Estos archivos solo seran visibles con la clave correcta.</p>
+        <form id="hiddenUploadForm" class="admin-form">
+            <div class="form-group">
+                <label for="hiddenMediaFile">Archivo (imagen o video)</label>
+                <input type="file" id="hiddenMediaFile" name="hiddenMediaFile" accept="image/*,video/*" required>
+            </div>
+            <div class="form-group">
+                <label for="hiddenMediaTitle">Frase o titulo</label>
+                <input type="text" id="hiddenMediaTitle" name="hiddenMediaTitle" placeholder="Describe el momento" required>
+            </div>
+            <div class="form-group">
+                <label for="hiddenMediaLocation">Ubicacion</label>
+                <input type="text" id="hiddenMediaLocation" name="hiddenMediaLocation" placeholder="Ej: Nuestro lugar secreto" required>
+            </div>
+            <div class="form-group">
+                <label for="hiddenMediaCategory">Categoria</label>
+                <select id="hiddenMediaCategory" name="hiddenMediaCategory" required>
+                    <option value="nosotros">Nosotros</option>
+                    <option value="salidas">Salidas</option>
+                    <option value="comidas">Comidas</option>
+                    <option value="outfits">Outfits</option>
+                    <option value="flores">Flores</option>
+                    <option value="extra">Extra</option>
+                </select>
+            </div>
+            <div class="form-actions">
+                <button type="submit" id="hiddenUploadButton">
+                    <i class="fas fa-cloud-upload-alt"></i> Subir a la galeria oculta
+                </button>
+                <span class="upload-status" id="hiddenUploadStatus" role="status"></span>
+            </div>
+        </form>
+        <p class="admin-note">Configura tus credenciales de Firebase en <code>firebase-config.js</code> para sincronizar esta galeria entre dispositivos.</p>
+    </section>
+
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="firebase-config.js"></script>
+    <script src="ocultos.js"></script>
+</body>
+</html>

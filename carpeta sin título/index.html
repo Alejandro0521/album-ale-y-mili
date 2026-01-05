@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <!-- Metadatos básicos: codificación de caracteres y configuración de la vista -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Endpoint del backend Flask que guarda en CSV (relativo para mismo origen) -->
+    <meta name="log-endpoint" content="/log-location">
+    <!-- Título de la página que aparece en la pestaña del navegador -->
+    <title>Ale y Mili</title>
+    <!-- Enlace a la biblioteca de iconos Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <!-- Enlace a los estilos de Swiper para el carrusel -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@9/swiper-bundle.min.css" />
+    <!-- Enlace a la hoja de estilos personalizada -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Encabezado de la página -->
+    <header>
+        <!-- Título principal con un corazón animado entre los nombres -->
+        <h1>
+            ALE <i class="fas fa-heart beating-heart"></i> MILI
+        </h1>
+        <!-- (Se eliminó el botón de ubicación; solo el administrador puede ver la ubicación) -->
+        <!-- Contenedor de botones para filtrar las fotos por categoría -->
+        <div class="filter-container">
+            <button class="filter-btn active" data-filter="all">Todas</button>
+            <button class="filter-btn" data-filter="nosotros">Nosotros</button>
+            <button class="filter-btn" data-filter="salidas">Salidas</button>
+            <button class="filter-btn" data-filter="comidas">Comidas</button>
+            <button class="filter-btn" data-filter="outfits">Outfits</button>
+            <button class="filter-btn" data-filter="flores">Flores</button>
+        </div>
+    </header>
+
+    <!-- Contenido principal: galería de fotos y videos -->
+    <main>
+        <!-- Contenedor de la galería con cuadrícula responsive -->
+        <div class="gallery-container">
+            <!-- Foto 1: Cada elemento de la galería tiene una estructura similar -->
+            <div class="gallery-item" data-category="nosotros">
+                <!-- Contenedor de la foto con overlay para botones -->
+                <div class="photo-container">
+                    <img src="Imagenes/Portada.jpeg" alt="Montañas">
+                    <!-- Overlay con botones para zoom, like y descarga -->
+                    <div class="photo-overlay">
+                        <button class="zoom-btn"><i class="fas fa-search-plus"></i></button>
+                        <button class="like-btn"><i class="far fa-heart"></i></button>
+                        <button class="download-btn"><i class="fas fa-download"></i></button>
+                    </div>
+                </div>
+                <!-- Información de la foto: título y ubicación -->
+                <div class="photo-info">
+                    <h3>A ti te veo en todos mis planes, incluso en los que pense que no invitaria a nadie</h3>
+                    <p class="photo-location"><i class="fas fa-map-marker-alt"></i>Acuario Inbursa</p>
+                </div>
+            </div>
+
+            <!-- Foto 2: Estructura similar a la anterior -->
+            <div class="gallery-item" data-category="nosotros">
+                <div class="photo-container">
+                    <img src="Imagenes\feria 1.jpeg" alt="Playa">
+                    <div class="photo-overlay">
+                        <button class="zoom-btn"><i class="fas fa-search-plus"></i></button>
+                        <button class="like-btn"><i class="far fa-heart"></i></button>
+                        <button class="download-btn"><i class="fas fa-download"></i></button>
+                    </div>
+                </div>
+                <div class="photo-info">
+                    <h3>Despues del Concierto de Gerardo Ortiz</h3>
+                    <p class="photo-location"><i class="fas fa-map-marker-alt"></i>Texcoco,La feria del caballo </p>
+                </div>
+            </div>
+
+            
+
+            <!-- Foto 2: Estructura similar a la anterior -->
+            <div class="gallery-item" data-category="nosotros">
+                <div class="photo-container">
+                    <img src="Imagenes/Nosotros2.jpg" alt="Playa">
+                    <div class="photo-overlay">
+                        <button class="zoom-btn"><i class="fas fa-search-plus"></i></button>
+                        <button class="like-btn"><i class="far fa-heart"></i></button>
+                        <button class="download-btn"><i class="fas fa-download"></i></button>
+                    </div>
+                </div>
+                <div class="photo-info">
+                    <h3>Y en ese momento, juro que fuimos infinitos</h3>
+                    <p class="photo-location"><i class="fas fa-map-marker-alt"></i>Texcoco,La media vuelta</p>
+                </div>
+            </div>
+
+            <!-- Foto 3: Categoría "salidas" -->
+            <div class="gallery-item" data-category="salidas">
+                <div class="photo-container">
+                    <img src="Imagenes/SALIDA 1.jpeg" alt="Nueva York">
+                    <div class="photo-overlay">
+                        <button class="zoom-btn"><i class="fas fa-search-plus"></i></button>
+                        <button class="like-btn"><i class="far fa-heart"></i></button>
+                        <button class="download-btn"><i class="fas fa-download"></i></button>
+                    </div>
+                </div>
+                <div class="photo-info">
+                    <h3>No se imaginan lo hermosa que es mi mujer </h3>
+                    <p class="photo-location"><i class="fas fa-map-marker-alt"></i>Texcoco,Boliche .</p>
+                </div>
+            </div>
+
+            <!-- Video 1: Estructura similar a las fotos pero con elemento video -->
+            <div class="gallery-item" data-category="salidas">
+                <div class="photo-container">
+                    <video controls>
+                        <source src="Imagenes\Video 1.mp4" type="video/mp4">
+                        Tu navegador no soporta el elemento de video.
+                    </video>
+                    <div class="photo-overlay">
+                        <button class="zoom-btn"><i class="fas fa-search-plus"></i></button>
+                        <button class="like-btn"><i class="far fa-heart"></i></button>
+                        <button class="download-btn"><i class="fas fa-download"></i></button>
+                    </div>
+                </div>
+                <div class="photo-info">
+                    <h3>Banda y mi Mujer</h3>
+                    <p class="photo-location"><i class="fas fa-map-marker-alt"></i>Lugar del video 1</p>
+                </div>
+            </div>
+
+            <!-- Video 2: Otro elemento de video -->
+            <div class="gallery-item" data-category="salidas">
+                <div class="photo-container">
+                    <video controls>
+                        <source src="Imagenes\Video 2.mp4" type="video/mp4">
+                        Tu navegador no soporta el elemento de video.
+                    </video>
+                    <div class="photo-overlay">
+                        <button class="zoom-btn"><i class="fas fa-search-plus"></i></button>
+                        <button class="like-btn"><i class="far fa-heart"></i></button>
+                        <button class="download-btn"><i class="fas fa-download"></i></button>
+                    </div>
+                </div>
+                <div class="photo-info">
+                    <h3>Medusas</h3>
+                    <p class="photo-location"><i class="fas fa-map-marker-alt"></i>Acuario Inbursa,CDMX</p>
+                </div>
+            </div>
+
+            <!-- Foto 4: Categoría "salidas" -->
+            <div class="gallery-item" data-category="salidas">
+                <div class="photo-container">
+                    <img src="Imagenes/SALIDA 2.jpeg" alt="París">
+                    <div class="photo-overlay">
+                        <button class="zoom-btn"><i class="fas fa-search-plus"></i></button>
+                        <button class="like-btn"><i class="far fa-heart"></i></button>
+                        <button class="download-btn"><i class="fas fa-download"></i></button>
+                    </div>
+                </div>
+                <div class="photo-info">
+                    <h3>Salida planeada por mi mujer </h3>
+                    <p class="photo-location"><i class="fas fa-map-marker-alt"></i>Acuario Inbursa,CDMX</p>
+                </div>
+            </div>
+
+            <!-- Foto 5: Categoría "comidas" -->
+            <div class="gallery-item" data-category="comidas">
+                <div class="photo-container">
+                    <img src="Imagenes/Comida1.jpeg" alt="Comida">
+                    <div class="photo-overlay">
+                        <button class="zoom-btn"><i class="fas fa-search-plus"></i></button>
+                        <button class="like-btn"><i class="far fa-heart"></i></button>
+                        <button class="download-btn"><i class="fas fa-download"></i></button>
+                    </div>
+                </div>
+                <div class="photo-info">
+                    <h3>Chilaquiles y Suizas </h3>
+                    <p class="photo-location"><i class="fas fa-map-marker-alt"></i>Texcoco,La abuelita</p>
+                </div>
+            </div>
+
+            <!-- Foto 6: Categoría "outfits" -->
+            <div class="gallery-item" data-category="outfits">
+                <div class="photo-container">
+                    <img src="Imagenes/Oufit 1.jpeg" alt="Moda">
+                    <div class="photo-overlay">
+                        <button class="zoom-btn"><i class="fas fa-search-plus"></i></button>
+                        <button class="like-btn"><i class="far fa-heart"></i></button>
+                        <button class="download-btn"><i class="fas fa-download"></i></button>
+                    </div>
+                </div>
+                <div class="photo-info">
+                    <h3>NO se imaginan lo hermosa que es mi mujer </h3>
+                    <p class="photo-location"><i class="fas fa-map-marker-alt"></i> Semana de la Moda</p>
+                </div>
+            </div>
+
+            <!-- Foto 7: Categoría "flores" -->
+            <div class="gallery-item" data-category="flores">
+                <div class="photo-container">
+                    <img src="Imagenes/Primeras flores.jpeg" alt="Flores">
+                    <div class="photo-overlay">
+                        <button class="zoom-btn"><i class="fas fa-search-plus"></i></button>
+                        <button class="like-btn"><i class="far fa-heart"></i></button>
+                        <button class="download-btn"><i class="fas fa-download"></i></button>
+                    </div>
+                </div>
+                <div class="photo-info">
+                    <h3>Ramo de Gerberas </h3>
+                    <p class="photo-location"><i class="fas fa-map-marker-alt"></i>Texcoco,ALV Bar</p>
+                </div>
+
+            </div>
+            <!-- Foto 8: Categoría "flores" -->
+            <div class="gallery-item" data-category="flores">
+                <div class="photo-container">
+                    <img src="Imagenes\Girasoles 1.jpeg" alt="Flores">
+                    <div class="photo-overlay">
+                        <button class="zoom-btn"><i class="fas fa-search-plus"></i></button>
+                        <button class="like-btn"><i class="far fa-heart"></i></button>
+                        <button class="download-btn"><i class="fas fa-download"></i></button>
+                    </div>
+                </div>
+                <div class="photo-info">
+                    <h3>Girasoles </h3>
+                    <p class="photo-location"><i class="fas fa-map-marker-alt"></i>Texcoco, Bar Center</p>
+                </div>
+            </div>
+
+            <!-- Foto 8: Categoría "flores" -->
+            <div class="gallery-item" data-category="flores">
+                <div class="photo-container">
+                    <img src="Imagenes\terceras flores.jpeg" alt="Flores">
+                    <div class="photo-overlay">
+                        <button class="zoom-btn"><i class="fas fa-search-plus"></i></button>
+                        <button class="like-btn"><i class="far fa-heart"></i></button>
+                        <button class="download-btn"><i class="fas fa-download"></i></button>
+                    </div>
+                </div>
+                <div class="photo-info">
+                    <h3>Rosas con naturaleza muerta </h3>
+                    <p class="photo-location"><i class="fas fa-map-marker-alt"></i>Texcoco,ALV Bar</p>
+                </div>
+            </div>
+
+            <!-- Foto 11: Categoría "comidas" -->
+            <div class="gallery-item" data-category="comidas">
+                <div class="photo-container">
+                    <img src="Imagenes/COMIDA 2.jpeg" alt="Postre">
+                    <div class="photo-overlay">
+                        <button class="zoom-btn"><i class="fas fa-search-plus"></i></button>
+                        <button class="like-btn"><i class="far fa-heart"></i></button>
+                        <button class="download-btn"><i class="fas fa-download"></i></button>
+                    </div>
+                </div>
+                <div class="photo-info">
+                    <h3>Sushi</h3>
+                    <p class="photo-location"><i class="fas fa-map-marker-alt"></i>Shushi Lin</p>
+                </div>
+            </div>
+
+            <!-- Foto 9: Categoría "flores" -->
+            <div class="gallery-item" data-category="flores">
+                <div class="photo-container">
+                    <img src="Imagenes\4ta flor.jpeg" alt="Flores">
+                    <div class="photo-overlay">
+                        <button class="zoom-btn"><i class="fas fa-search-plus"></i></button>
+                        <button class="like-btn"><i class="far fa-heart"></i></button>
+                        <button class="download-btn"><i class="fas fa-download"></i></button>
+                    </div>
+                </div>
+                <div class="photo-info">
+                    <h3>Rosas con Hortensias</h3>
+                    <p class="photo-location"><i class="fas fa-map-marker-alt"></i>Texcoco,La feria del Caballo</p>
+                </div>
+            </div>
+
+            <!-- Foto 10: Categoría "flores" -->
+            <div class="gallery-item" data-category="flores">
+                <div class="photo-container">
+                    <img src="Imagenes/segundas flores.jpeg" alt="Ramo">
+                    <div class="photo-overlay">
+                        <button class="zoom-btn"><i class="fas fa-search-plus"></i></button>
+                        <button class="like-btn"><i class="far fa-heart"></i></button>
+                        <button class="download-btn"><i class="fas fa-download"></i></button>
+                    </div>
+                </div>
+                <div class="photo-info">
+                    <h3>Ramo de rosas </h3>
+                    <p class="photo-location"><i class="fas fa-map-marker-alt"></i>Texcoco,Sushi Bar</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Sección de fotos destacadas: muestra las fotos con "like" en un carrusel -->
+    <section class="featured-photos">
+        <h2>Fotos Destacadas</h2>
+        <!-- Componente Swiper para el carrusel de fotos destacadas -->
+        <div class="swiper featured-swiper">
+            <!-- Contenedor donde se cargarán dinámicamente las fotos con like mediante JavaScript -->
+            <div class="swiper-wrapper" id="featuredPhotosContainer">
+                <!-- Aquí se cargarán dinámicamente las fotos con like -->
+            </div>
+            <!-- Paginación del carrusel (puntos indicadores) -->
+            <div class="swiper-pagination"></div>
+            <!-- Se eliminaron los botones de navegación para un diseño más limpio -->
+        </div>
+    </section>
+
+    <!-- Sección de propuesta de noviazgo: muestra fotos y videos de la propuesta -->
+    <section class="proposal-section">
+        <h2>Propuesta de Noviazgo</h2>
+        <!-- Cuadrícula para mostrar fotos y videos de la propuesta -->
+        <div class="proposal-grid">
+            <!-- Elementos de la propuesta: fotos y videos -->
+            <div class="proposal-item">
+                <img src="Imagenes/propuesta1.jpg" alt="Propuesta 1">
+            </div>
+            <div class="proposal-item">
+                <img src="Imagenes/propuesta2.jpg" alt="Propuesta 2">
+            </div>
+            <div class="proposal-item">
+                <video controls>
+                    <source src="Imagenes/propuesta_video1.mp4" type="video/mp4">
+                </video>
+            </div>
+            <div class="proposal-item">
+                <img src="Imagenes/propuesta3.jpg" alt="Propuesta 3">
+            </div>
+            <div class="proposal-item">
+                <img src="Imagenes/propuesta4.jpg" alt="Propuesta 4">
+            </div>
+            <div class="proposal-item">
+                <video controls>
+                    <source src="Imagenes/propuesta_video2.mp4" type="video/mp4">
+                </video>
+            </div>
+            <div class="proposal-item">
+                <img src="Imagenes/propuesta5.jpg" alt="Propuesta 5">
+            </div>
+            <div class="proposal-item">
+                <img src="Imagenes/propuesta6.jpg" alt="Propuesta 6">
+            </div>
+        </div>
+    </section>
+
+    <!-- Modal para ver fotos y videos ampliados -->
+    <div class="zoom-modal" id="zoomModal">
+        <div class="modal-content">
+            <!-- Botón para cerrar el modal -->
+            <span class="close-modal">&times;</span>
+            <!-- Contenedor para la foto o video ampliado -->
+            <div class="modal-photo-container">
+                <!-- Elemento de imagen para fotos -->
+                <img id="modalPhotoImage" src="" alt="Foto ampliada">
+                <!-- Elemento de video para videos (inicialmente oculto) -->
+                <video id="modalVideoPlayer" controls style="display: none;">
+                    <source id="modalVideoSource" src="" type="video/mp4">
+                    Tu navegador no soporta el elemento de video.
+                </video>
+            </div>
+            <!-- Información de la foto o video ampliado -->
+            <div class="modal-photo-info">
+                <h2 id="modalPhotoTitle"></h2>
+                <p id="modalPhotoLocation"></p>
+                <!-- Botones de acción en el modal -->
+                <div class="modal-actions">
+                    <button class="modal-like-btn"><i class="far fa-heart"></i> Me gusta</button>
+                    <button class="modal-download-btn"><i class="fas fa-download"></i> Descargar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts JavaScript -->
+    <!-- Biblioteca Swiper para el carrusel -->
+    <script src="https://cdn.jsdelivr.net/npm/swiper@9/swiper-bundle.min.js"></script>
+    <!-- Script personalizado para la funcionalidad de la página -->
+    <script src="script.js"></script>
+</body>
+</html>
+
+
+
+

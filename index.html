@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <!-- Metadatos básicos: codificación de caracteres y configuración de la vista -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#ff8fa3">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Ale y Mili">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="application-name" content="Ale y Mili">
+    <meta name="description"
+        content="Nuestro espacio íntimo de recuerdos y momentos especiales - Álbum de fotos de Ale y Mili">
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+
+    <!-- Íconos para iOS y Android -->
+    <link rel="apple-touch-icon" href="Imagenes/Portada.jpeg">
+    <link rel="icon" type="image/jpeg" href="Imagenes/Portada.jpeg">
+
+    <!-- Open Graph para compartir en redes sociales -->
+    <meta property="og:title" content="Ale y Mili - Nuestro Álbum">
+    <meta property="og:description" content="Nuestro espacio íntimo de recuerdos y momentos especiales">
+    <meta property="og:image" content="Imagenes/Portada.jpeg">
+    <meta property="og:type" content="website">
+
+    <!-- Endpoint del backend Flask que guarda en CSV (relativo para mismo origen) -->
+    <meta name="log-endpoint" content="/log-location">
+    <!-- Título de la página que aparece en la pestaña del navegador -->
+    <title>Ale y Mili</title>
+    <!-- Enlace a la biblioteca de iconos Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+        integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <!-- Enlace a los estilos de Swiper para el carrusel -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@9/swiper-bundle.min.css" />
+    <!-- Leaflet para el mapa interactivo -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+    <!-- Enlace a la hoja de estilos personalizada -->
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <!-- Contenedor de partículas flotantes -->
+    <div class="particles-container" id="particlesContainer"></div>
+
+    <!-- Encabezado de la página -->
+    <header>
+        <div class="top-bar">
+
+            <div class="top-controls">
+                <div class="music-mini-bar" id="musicMiniBar">
+                    <button type="button" class="mini-play-btn" id="miniPlayPauseButton"
+                        aria-label="Reproducir o pausar soundtrack">
+                        <i class="fas fa-play"></i>
+                    </button>
+                    <button type="button" class="mini-toggle-btn" id="musicToggleButton" aria-expanded="false"
+                        aria-controls="musicPlayerPanel">
+                        <i class="fas fa-music"></i>
+                        <span class="mini-text">
+                            <span class="mini-label">Soundtrack</span>
+                            <span class="mini-track" id="miniTrackText">Selecciona una canción</span>
+                        </span>
+                        <i class="fas fa-chevron-down" id="musicToggleChevron"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <!-- Título principal con un corazón animado entre los nombres -->
+        <div class="hero-heading">
+            <h1>Ale <i class="fas fa-heart beating-heart"></i> Mili</h1>
+            <p>Este es nuestro espacio íntimo</p>
+        </div>
+        <!-- Contenedor de botones para filtrar las fotos por categoría -->
+        <div class="filter-container">
+            <button class="filter-btn active" data-filter="all">Todas</button>
+            <button class="filter-btn" data-filter="nosotros">Nosotros</button>
+            <button class="filter-btn" data-filter="salidas">Salidas</button>
+            <button class="filter-btn" data-filter="comidas">Comidas</button>
+            <button class="filter-btn" data-filter="outfits">Outfits</button>
+            <button class="filter-btn" data-filter="flores">Flores</button>
+        </div>
+    </header>
+    <section class="music-player" id="musicPlayerPanel" aria-label="Reproductor musical" data-open="false">
+        <div class="music-shell">
+            <div class="music-now-playing">
+                <div class="music-cover">
+                    <img id="musicCover" src="Imagenes/Portada.jpeg" alt="Portada del track en reproduccion"
+                        loading="lazy">
+                </div>
+                <div class="music-meta">
+                    <span class="music-eyebrow">Playlist especial</span>
+                    <h2>Soundtrack de Nosotros</h2>
+                    <div class="music-track">
+                        <span class="music-track-title" id="currentTrackTitle">Selecciona una cancion</span>
+                        <span class="music-track-artist" id="currentTrackArtist">Aqui aparece el artista</span>
+                    </div>
+                </div>
+            </div>
+            <div class="music-controls">
+                <div class="seek-container">
+                    <span class="time-code" id="currentTime">0:00</span>
+                    <input type="range" id="trackSeek" min="0" max="100" value="0" aria-label="Avance de la cancion">
+                    <span class="time-code" id="trackDuration">0:00</span>
+                </div>
+                <div class="transport">
+                    <button class="icon-btn" id="prevButton" aria-label="Cancion anterior"><i
+                            class="fas fa-backward"></i></button>
+                    <button class="icon-btn primary" id="playPauseButton" aria-label="Reproducir o pausar"><i
+                            class="fas fa-play"></i></button>
+                    <button class="icon-btn" id="nextButton" aria-label="Siguiente cancion"><i
+                            class="fas fa-forward"></i></button>
+                    <div class="volume-control">
+                        <i class="fas fa-volume-down"></i>
+                        <input type="range" id="volumeSlider" min="0" max="100" value="80" aria-label="Volumen">
+                    </div>
+                </div>
+            </div>
+            <div class="music-playlist" role="listbox" aria-label="Canciones disponibles" id="playlistList"></div>
+        </div>
+        <audio id="audioPlayer" preload="metadata"></audio>
+    </section>
+
+    <!-- Contenido principal: galería de fotos y videos -->
+    <main>
+        <!-- Contenedor de la galería con cuadrícula responsive -->
+        <div class="gallery-container">
+            <!-- Foto 1: Cada elemento de la galería tiene una estructura similar -->
+            <div class="gallery-item" data-category="nosotros">
+                <!-- Contenedor de la foto con overlay para botones -->
+                <div class="photo-container">
+                    <img src="Imagenes/Portada.jpeg" alt="Montañas">
+                    <!-- Overlay con botones para zoom, like y descarga -->
+                    <div class="photo-overlay">
+
+                        <button class="like-btn"><i class="far fa-heart"></i></button>
+                        <button class="download-btn"><i class="fas fa-download"></i></button>
+                    </div>
+                </div>
+                <!-- Información de la foto: título y ubicación -->
+                <div class="photo-info">
+                    <h3>A ti te veo en todos mis planes, incluso en los que pense que no invitaria a nadie</h3>
+                    <p class="photo-location"><i class="fas fa-map-marker-alt"></i>Acuario Inbursa</p>
+                </div>
+            </div>
+
+            <!-- Foto 2: Estructura similar a la anterior -->
+            <div class="gallery-item" data-category="nosotros">
+                <div class="photo-container">
+                    <img src="Imagenes\feria 1.jpeg" alt="Playa">
+                    <div class="photo-overlay">
+
+                        <button class="like-btn"><i class="far fa-heart"></i></button>
+                        <button class="download-btn"><i class="fas fa-download"></i></button>
+                    </div>
+                </div>
+                <div class="photo-info">
+                    <h3>Despues del Concierto de Gerardo Ortiz</h3>
+                    <p class="photo-location"><i class="fas fa-map-marker-alt"></i>Texcoco,La feria del caballo </p>
+                </div>
+            </div>
+
+
+
+            <!-- Foto 2: Estructura similar a la anterior -->
+            <div class="gallery-item" data-category="nosotros">
+                <div class="photo-container">
+                    <img src="Imagenes/Nosotros2.jpg" alt="Playa">
+                    <div class="photo-overlay">
+
+                        <button class="like-btn"><i class="far fa-heart"></i></button>
+                        <button class="download-btn"><i class="fas fa-download"></i></button>
+                    </div>
+                </div>
+                <div class="photo-info">
+                    <h3>Y en ese momento, juro que fuimos infinitos</h3>
+                    <p class="photo-location"><i class="fas fa-map-marker-alt"></i>Texcoco,La media vuelta</p>
+                </div>
+            </div>
+
+            <!-- Foto 3: Categoría "salidas" -->
+            <div class="gallery-item" data-category="salidas">
+                <div class="photo-container">
+                    <img src="Imagenes/SALIDA 1.jpeg" alt="Nueva York">
+                    <div class="photo-overlay">
+
+                        <button class="like-btn"><i class="far fa-heart"></i></button>
+                        <button class="download-btn"><i class="fas fa-download"></i></button>
+                    </div>
+                </div>
+                <div class="photo-info">
+                    <h3>No se imaginan lo hermosa que es mi mujer </h3>
+                    <p class="photo-location"><i class="fas fa-map-marker-alt"></i>Texcoco,Boliche .</p>
+                </div>
+            </div>
+
+            <!-- Video 1: Estructura similar a las fotos pero con elemento video -->
+            <div class="gallery-item" data-category="salidas">
+                <div class="photo-container">
+                    <video controls>
+                        <source src="Imagenes\Video 1.mp4" type="video/mp4">
+                        Tu navegador no soporta el elemento de video.
+                    </video>
+                    <div class="photo-overlay">
+
+                        <button class="like-btn"><i class="far fa-heart"></i></button>
+                        <button class="download-btn"><i class="fas fa-download"></i></button>
+                    </div>
+                </div>
+                <div class="photo-info">
+                    <h3>Banda y mi Mujer</h3>
+                    <p class="photo-location"><i class="fas fa-map-marker-alt"></i>Lugar del video 1</p>
+                </div>
+            </div>
+
+            <!-- Video 2: Otro elemento de video -->
+            <div class="gallery-item" data-category="salidas">
+                <div class="photo-container">
+                    <video controls>
+                        <source src="Imagenes\Video 2.mp4" type="video/mp4">
+                        Tu navegador no soporta el elemento de video.
+                    </video>
+                    <div class="photo-overlay">
+
+                        <button class="like-btn"><i class="far fa-heart"></i></button>
+                        <button class="download-btn"><i class="fas fa-download"></i></button>
+                    </div>
+                </div>
+                <div class="photo-info">
+                    <h3>Medusas</h3>
+                    <p class="photo-location"><i class="fas fa-map-marker-alt"></i>Acuario Inbursa,CDMX</p>
+                </div>
+            </div>
+
+            <!-- Foto 4: Categoría "salidas" -->
+            <div class="gallery-item" data-category="salidas">
+                <div class="photo-container">
+                    <img src="Imagenes/SALIDA 2.jpeg" alt="París">
+                    <div class="photo-overlay">
+
+                        <button class="like-btn"><i class="far fa-heart"></i></button>
+                        <button class="download-btn"><i class="fas fa-download"></i></button>
+                    </div>
+                </div>
+                <div class="photo-info">
+                    <h3>Salida planeada por mi mujer </h3>
+                    <p class="photo-location"><i class="fas fa-map-marker-alt"></i>Acuario Inbursa,CDMX</p>
+                </div>
+            </div>
+
+            <!-- Foto 5: Categoría "comidas" -->
+            <div class="gallery-item" data-category="comidas">
+                <div class="photo-container">
+                    <img src="Imagenes/Comida1.jpeg" alt="Comida">
+                    <div class="photo-overlay">
+
+                        <button class="like-btn"><i class="far fa-heart"></i></button>
+                        <button class="download-btn"><i class="fas fa-download"></i></button>
+                    </div>
+                </div>
+                <div class="photo-info">
+                    <h3>Chilaquiles y Suizas </h3>
+                    <p class="photo-location"><i class="fas fa-map-marker-alt"></i>Texcoco,La abuelita</p>
+                </div>
+            </div>
+
+            <!-- Foto 6: Categoría "outfits" -->
+            <div class="gallery-item" data-category="outfits">
+                <div class="photo-container">
+                    <img src="Imagenes/Oufit 1.jpeg" alt="Moda">
+                    <div class="photo-overlay">
+
+                        <button class="like-btn"><i class="far fa-heart"></i></button>
+                        <button class="download-btn"><i class="fas fa-download"></i></button>
+                    </div>
+                </div>
+                <div class="photo-info">
+                    <h3>NO se imaginan lo hermosa que es mi mujer </h3>
+                    <p class="photo-location"><i class="fas fa-map-marker-alt"></i> Semana de la Moda</p>
+                </div>
+            </div>
+
+            <!-- Foto 7: Categoría "flores" -->
+            <div class="gallery-item" data-category="flores">
+                <div class="photo-container">
+                    <img src="Imagenes/Primeras flores.jpeg" alt="Flores">
+                    <div class="photo-overlay">
+
+                        <button class="like-btn"><i class="far fa-heart"></i></button>
+                        <button class="download-btn"><i class="fas fa-download"></i></button>
+                    </div>
+                </div>
+                <div class="photo-info">
+                    <h3>Ramo de Gerberas </h3>
+                    <p class="photo-location"><i class="fas fa-map-marker-alt"></i>Texcoco,ALV Bar</p>
+                </div>
+
+            </div>
+            <!-- Foto 8: Categoría "flores" -->
+            <div class="gallery-item" data-category="flores">
+                <div class="photo-container">
+                    <img src="Imagenes\Girasoles 1.jpeg" alt="Flores">
+                    <div class="photo-overlay">
+
+                        <button class="like-btn"><i class="far fa-heart"></i></button>
+                        <button class="download-btn"><i class="fas fa-download"></i></button>
+                    </div>
+                </div>
+                <div class="photo-info">
+                    <h3>Girasoles </h3>
+                    <p class="photo-location"><i class="fas fa-map-marker-alt"></i>Texcoco, Bar Center</p>
+                </div>
+            </div>
+
+            <!-- Foto 8: Categoría "flores" -->
+            <div class="gallery-item" data-category="flores">
+                <div class="photo-container">
+                    <img src="Imagenes\terceras flores.jpeg" alt="Flores">
+                    <div class="photo-overlay">
+
+                        <button class="like-btn"><i class="far fa-heart"></i></button>
+                        <button class="download-btn"><i class="fas fa-download"></i></button>
+                    </div>
+                </div>
+                <div class="photo-info">
+                    <h3>Rosas con naturaleza muerta </h3>
+                    <p class="photo-location"><i class="fas fa-map-marker-alt"></i>Texcoco,ALV Bar</p>
+                </div>
+            </div>
+
+            <!-- Foto 11: Categoría "comidas" -->
+            <div class="gallery-item" data-category="comidas">
+                <div class="photo-container">
+                    <img src="Imagenes/COMIDA 2.jpeg" alt="Postre">
+                    <div class="photo-overlay">
+
+                        <button class="like-btn"><i class="far fa-heart"></i></button>
+                        <button class="download-btn"><i class="fas fa-download"></i></button>
+                    </div>
+                </div>
+                <div class="photo-info">
+                    <h3>Sushi</h3>
+                    <p class="photo-location"><i class="fas fa-map-marker-alt"></i>Shushi Lin</p>
+                </div>
+            </div>
+
+            <!-- Foto 9: Categoría "flores" -->
+            <div class="gallery-item" data-category="flores">
+                <div class="photo-container">
+                    <img src="Imagenes\4ta flor.jpeg" alt="Flores">
+                    <div class="photo-overlay">
+
+                        <button class="like-btn"><i class="far fa-heart"></i></button>
+                        <button class="download-btn"><i class="fas fa-download"></i></button>
+                    </div>
+                </div>
+                <div class="photo-info">
+                    <h3>Rosas con Hortensias</h3>
+                    <p class="photo-location"><i class="fas fa-map-marker-alt"></i>Texcoco,La feria del Caballo</p>
+                </div>
+            </div>
+
+            <!-- Foto 10: Categoría "flores" -->
+            <div class="gallery-item" data-category="flores">
+                <div class="photo-container">
+                    <img src="Imagenes/segundas flores.jpeg" alt="Ramo">
+                    <div class="photo-overlay">
+
+                        <button class="like-btn"><i class="far fa-heart"></i></button>
+                        <button class="download-btn"><i class="fas fa-download"></i></button>
+                    </div>
+                </div>
+                <div class="photo-info">
+                    <h3>Ramo de rosas </h3>
+                    <p class="photo-location"><i class="fas fa-map-marker-alt"></i>Texcoco,Sushi Bar</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Sección de fotos destacadas: muestra las fotos con "like" en un carrusel -->
+    <section class="featured-photos">
+        <h2>Fotos Destacadas</h2>
+        <!-- Componente Swiper para el carrusel de fotos destacadas -->
+        <div class="swiper featured-swiper">
+            <!-- Contenedor donde se cargarán dinámicamente las fotos con like mediante JavaScript -->
+            <div class="swiper-wrapper" id="featuredPhotosContainer">
+                <!-- Aquí se cargarán dinámicamente las fotos con like -->
+            </div>
+            <!-- Paginación eliminada -->
+
+        </div>
+    </section>
+
+    <!-- Mapa de ubicaciones especiales -->
+    <section class="map-section">
+        <div class="map-shell">
+            <div class="map-copy">
+                <h2>Mapa de Recuerdos</h2>
+                <p>Explora los lugares que guardan nuestras historias favoritas.</p>
+            </div>
+            <div id="memoriesMap" aria-label="Mapa interactivo de nuestros recuerdos"></div>
+        </div>
+    </section>
+
+    <section class="poem-gallery" aria-label="Galería de poemas dedicados">
+        <div class="poem-shell">
+            <div class="poem-copy">
+                <h2>Galer&iacute;a de Poemas</h2>
+                <p>Un rinc&oacute;n para conservar las cartas, versos y pensamientos que escribimos el uno para el otro.
+                </p>
+            </div>
+            <div class="poem-grid">
+                <article class="poem-card">
+                    <div class="poem-media">
+                        <img src="Imagenes/poema1.jpg" alt="Poema especial 1" loading="lazy">
+                    </div>
+                    <footer class="poem-meta">
+                        <h3>Poema especial</h3>
+                        <span>Agrega aqu&iacute; tus versos favoritos</span>
+                    </footer>
+                </article>
+                <article class="poem-card">
+                    <div class="poem-media">
+                        <img src="Imagenes/poema2.jpg" alt="Poema especial 2" loading="lazy">
+                    </div>
+                    <footer class="poem-meta">
+                        <h3>Carta manuscrita</h3>
+                        <span>Reemplaza la imagen con tu carta escaneada</span>
+                    </footer>
+                </article>
+                <article class="poem-card">
+                    <div class="poem-media">
+                        <img src="Imagenes/poema3.jpg" alt="Poema especial 3" loading="lazy">
+                    </div>
+                    <footer class="poem-meta">
+                        <h3>Pensamiento</h3>
+                        <span>Sube el poema y personaliza este texto</span>
+                    </footer>
+                </article>
+            </div>
+        </div>
+    </section>
+
+    <!-- Sección de Línea del Tiempo -->
+    <section class="timeline-section" id="timelineSection">
+        <div class="timeline-header">
+            <h2>Nuestra Historia</h2>
+            <p>Cronología de nuestros momentos</p>
+        </div>
+        <div class="timeline-container" id="timelineContainer">
+            <!-- Items generados dinámicamente -->
+        </div>
+    </section>
+
+    <!-- Sección para acceder a la galería oculta -->
+    <section class="hidden-link" id="hiddenLinkSection">
+        <h2>Galer&iacute;a Oculta</h2>
+        <p>Protegida con clave para contenidos especiales.</p>
+        <button type="button" id="openHiddenGallery" class="hidden-btn">
+            <i class="fas fa-lock"></i> Abrir secci&oacute;n Ocultos
+        </button>
+        <span class="hidden-status" id="hiddenAccessStatus" role="status"></span>
+    </section>
+
+    <!-- Modal para ver fotos y videos ampliados -->
+    <div class="zoom-modal" id="zoomModal">
+        <div class="modal-content">
+            <!-- Botón para cerrar el modal -->
+            <span class="close-modal">&times;</span>
+            <!-- Contenedor para la foto o video ampliado -->
+            <div class="modal-photo-container">
+                <!-- Elemento de imagen para fotos -->
+                <img id="modalPhotoImage" src="" alt="Foto ampliada">
+                <!-- Elemento de video para videos (inicialmente oculto) -->
+                <video id="modalVideoPlayer" controls style="display: none;">
+                    <source id="modalVideoSource" src="" type="video/mp4">
+                    Tu navegador no soporta el elemento de video.
+                </video>
+            </div>
+            <!-- Información de la foto o video ampliado -->
+            <div class="modal-photo-info">
+                <h2 id="modalPhotoTitle"></h2>
+                <p id="modalPhotoLocation"></p>
+                <!-- Botones de acción en el modal -->
+                <div class="modal-actions">
+                    <button class="modal-edit-btn" style="display: none;"><i class="fas fa-pen"></i> Editar</button>
+                    <button class="modal-like-btn"><i class="far fa-heart"></i> Me gusta</button>
+                    <button class="modal-download-btn"><i class="fas fa-download"></i> Descargar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para Editar Detalles -->
+    <div class="edit-modal" id="editModal">
+        <div class="edit-modal-content">
+            <span class="edit-modal-close" id="editModalClose">&times;</span>
+            <h2><i class="fas fa-pen-nib"></i> Editar Recuerdo</h2>
+
+            <form id="editForm" class="edit-form">
+                <input type="hidden" id="editItemId">
+                <input type="hidden" id="editItemKey">
+                <input type="hidden" id="editItemType"> <!-- 'static', 'local', 'firebase' -->
+
+                <div class="edit-form-group">
+                    <label for="editDescription"><i class="fas fa-align-left"></i> Descripción / Titulo</label>
+                    <textarea id="editDescription" rows="4"
+                        placeholder="Escribe el nuevo título o descripción..."></textarea>
+                </div>
+
+                <div class="edit-form-group">
+                    <label for="editDate"><i class="fas fa-calendar-day"></i> Fecha</label>
+                    <input type="date" id="editDate">
+                </div>
+
+                <div class="edit-form-actions">
+                    <button type="submit" class="save-edit-btn">
+                        <i class="fas fa-save"></i> Guardar Cambios
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Menú FAB Expandible -->
+    <div class="fab-menu" id="fabMenu">
+        <!-- Botones secundarios (se muestran al expandir) -->
+        <button class="fab-action music-action" id="musicFab" aria-label="Reproductor de música" data-tooltip="Música">
+            <i class="fas fa-music"></i>
+        </button>
+        <button class="fab-action mailbox-action" id="mailboxFab" aria-label="Buzón de mensajes"
+            data-tooltip="Mensajes">
+            <i class="fas fa-envelope"></i>
+            <span class="fab-badge" id="mailboxBadge" style="display: none;">0</span>
+        </button>
+        <button class="fab-action upload-action" id="uploadFab" aria-label="Subir foto" data-tooltip="Subir foto">
+            <i class="fas fa-camera"></i>
+        </button>
+        <button class="fab-action wishlist-action" id="wishlistFab" aria-label="Lista de deseos" data-tooltip="Deseos">
+            <i class="fas fa-heart"></i>
+        </button>
+
+        <!-- Botón principal -->
+        <button class="fab-main" id="fabMainBtn" aria-label="Menú de acciones">
+            <i class="fas fa-plus"></i>
+        </button>
+    </div>
+
+    <!-- Modal para subir imágenes -->
+    <div class="upload-modal" id="uploadModal">
+        <div class="upload-modal-content">
+            <span class="upload-modal-close" id="uploadModalClose">&times;</span>
+            <h2><i class="fas fa-cloud-upload-alt"></i> Subir Foto</h2>
+            <p class="upload-modal-subtitle">Comparte un momento especial con nosotros</p>
+
+            <form id="uploadForm" class="upload-form">
+                <div class="upload-preview-container">
+                    <div class="upload-preview" id="uploadPreview">
+                        <i class="fas fa-image"></i>
+                        <span>Vista previa</span>
+                    </div>
+                </div>
+
+                <div class="upload-form-group">
+                    <label for="uploadFile"><i class="fas fa-file-image"></i> Seleccionar archivo</label>
+                    <input type="file" id="uploadFile" accept="image/*,video/*,audio/*" required>
+                </div>
+
+                <div class="upload-form-group">
+                    <label for="uploadTitle"><i class="fas fa-heading"></i> Título</label>
+                    <input type="text" id="uploadTitle" placeholder="Ej: Nuestro día especial..." required>
+                </div>
+
+                <div class="upload-form-group">
+                    <label for="uploadDescription"><i class="fas fa-align-left"></i> Poema o Descripción</label>
+                    <textarea id="uploadDescription" rows="3"
+                        placeholder="Escribe aquí tu poema o una descripción detallada..."></textarea>
+                </div>
+
+                <div class="upload-form-group">
+                    <label for="uploadLocation"><i class="fas fa-map-marker-alt"></i> Ubicación</label>
+                    <input type="text" id="uploadLocation" placeholder="Ej: Parque Central, CDMX">
+                </div>
+
+                <div class="upload-form-group">
+                    <label for="uploadDate"><i class="fas fa-calendar-alt"></i> Fecha del recuerdo</label>
+                    <input type="date" id="uploadDate">
+                </div>
+
+                <div class="upload-form-group">
+                    <label for="uploadCategory"><i class="fas fa-folder"></i> Categoría</label>
+                    <select id="uploadCategory" required>
+                        <option value="nosotros">Nosotros</option>
+                        <option value="salidas">Salidas</option>
+                        <option value="comidas">Comidas</option>
+                        <option value="outfits">Outfits</option>
+                        <option value="flores">Flores</option>
+                        <option value="poemas">Poemas</option>
+                        <option value="musica">Música</option>
+                    </select>
+                </div>
+
+                <div class="upload-progress" id="uploadProgress">
+                    <div class="upload-progress-bar" id="uploadProgressBar"></div>
+                </div>
+
+                <button type="submit" class="upload-submit-btn" id="uploadSubmitBtn">
+                    <i class="fas fa-upload"></i> Subir Imagen
+                </button>
+
+                <p class="upload-status" id="uploadStatusText"></p>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal de reproductor de música flotante -->
+    <div class="music-modal" id="musicModal">
+        <div class="music-modal-content">
+            <div class="music-modal-header">
+                <div class="music-modal-cover">
+                    <img id="musicModalCover" src="Imagenes/Portada.jpeg" alt="Portada">
+                </div>
+                <div class="music-modal-info">
+                    <div class="music-modal-title" id="musicModalTitle">Selecciona una canción</div>
+                    <div class="music-modal-artist" id="musicModalArtist">Aquí aparece el artista</div>
+                </div>
+            </div>
+
+            <div class="music-modal-progress">
+                <span class="time" id="musicModalCurrentTime">0:00</span>
+                <input type="range" id="musicModalSeek" min="0" max="100" value="0">
+                <span class="time" id="musicModalDuration">0:00</span>
+            </div>
+
+            <div class="music-modal-controls">
+                <button class="music-modal-btn" id="musicModalPrev" aria-label="Anterior">
+                    <i class="fas fa-backward"></i>
+                </button>
+                <button class="music-modal-btn primary" id="musicModalPlay" aria-label="Reproducir">
+                    <i class="fas fa-play"></i>
+                </button>
+                <button class="music-modal-btn" id="musicModalNext" aria-label="Siguiente">
+                    <i class="fas fa-forward"></i>
+                </button>
+            </div>
+
+            <div class="music-modal-playlist" id="musicModalPlaylist">
+                <!-- Playlist se genera dinámicamente -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Lista de Deseos -->
+    <div class="wishlist-modal" id="wishlistModal">
+        <div class="wishlist-modal-content">
+            <span class="wishlist-modal-close" id="wishlistModalClose">&times;</span>
+
+            <div class="wishlist-header">
+                <i class="fas fa-list-ul"></i>
+                <h2>Lista de Deseos</h2>
+                <p class="wishlist-subtitle">Cosas que queremos hacer juntos ✨</p>
+            </div>
+
+            <div class="wishlist-input-container">
+                <input type="text" id="wishInput" placeholder="Agregar un nuevo deseo..." autocomplete="off">
+                <button id="addWishBtn"><i class="fas fa-plus"></i></button>
+            </div>
+
+            <div class="wishlist-items" id="wishlistItems">
+                <!-- Los deseos se cargan dinámicamente -->
+                <div class="no-wishes" id="noWishes">
+                    <i class="far fa-star"></i>
+                    <p>Tu lista está vacía</p>
+                    <span>¡Agreguen su primer plan juntos!</span>
+                </div>
+            </div>
+
+            <div class="wishlist-progress">
+                <div class="progress-text">
+                    <span id="completedCount">0</span> de <span id="totalCount">0</span> cumplidos
+                </div>
+                <div class="progress-bar-container">
+                    <div class="progress-bar-fill" id="wishlistProgressBar" style="width: 0%"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal del buzón de mensajes -->
+    <div class="mailbox-modal" id="mailboxModal">
+        <div class="mailbox-modal-content">
+            <span class="mailbox-modal-close" id="mailboxModalClose">&times;</span>
+
+            <div class="mailbox-header">
+                <i class="fas fa-heart"></i>
+                <h2>Buzón Secreto</h2>
+                <p class="mailbox-subtitle">Déjale un mensaje especial 💌</p>
+            </div>
+
+            <!-- Tabs para cambiar entre escribir y leer -->
+            <div class="mailbox-tabs">
+                <button class="mailbox-tab active" data-tab="write">
+                    <i class="fas fa-pen"></i> Escribir
+                </button>
+                <button class="mailbox-tab" data-tab="read">
+                    <i class="fas fa-inbox"></i> Leer
+                </button>
+            </div>
+
+            <!-- Panel de escribir mensaje -->
+            <div class="mailbox-panel active" id="writePanel">
+                <form id="messageForm" class="message-form">
+                    <div class="message-form-group">
+                        <label for="messageFrom">De:</label>
+                        <div class="sender-options">
+                            <button type="button" class="sender-btn active" data-sender="Ale">
+                                💙 Ale
+                            </button>
+                            <button type="button" class="sender-btn" data-sender="Mili">
+                                💖 Mili
+                            </button>
+                        </div>
+                        <input type="hidden" id="messageFrom" value="Ale">
+                    </div>
+
+                    <div class="message-form-group">
+                        <label for="messageText">Tu mensaje:</label>
+                        <textarea id="messageText" placeholder="Escribe algo bonito..." rows="4" required></textarea>
+                    </div>
+
+                    <div class="message-form-group">
+                        <label>Color de la nota:</label>
+                        <div class="color-options">
+                            <button type="button" class="color-btn active" data-color="#fff0f5"
+                                style="background: #fff0f5;"></button>
+                            <button type="button" class="color-btn" data-color="#f0f8ff"
+                                style="background: #f0f8ff;"></button>
+                            <button type="button" class="color-btn" data-color="#fff5e6"
+                                style="background: #fff5e6;"></button>
+                            <button type="button" class="color-btn" data-color="#f0fff0"
+                                style="background: #f0fff0;"></button>
+                            <button type="button" class="color-btn" data-color="#fff0ff"
+                                style="background: #fff0ff;"></button>
+                        </div>
+                        <input type="hidden" id="messageColor" value="#fff0f5">
+                    </div>
+
+                    <button type="submit" class="send-message-btn">
+                        <i class="fas fa-paper-plane"></i> Enviar Mensaje
+                    </button>
+                </form>
+            </div>
+
+            <!-- Panel de leer mensajes -->
+            <div class="mailbox-panel" id="readPanel">
+                <div class="messages-list" id="messagesList">
+                    <!-- Los mensajes se cargan dinámicamente -->
+                    <div class="no-messages" id="noMessages">
+                        <i class="fas fa-envelope-open"></i>
+                        <p>Aún no hay mensajes</p>
+                        <span>¡Sé el primero en escribir uno!</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts JavaScript -->
+    <!-- Biblioteca Swiper para el carrusel -->
+    <script src="https://cdn.jsdelivr.net/npm/swiper@9/swiper-bundle.min.js"></script>
+    <!-- Firebase (compat) para cargas y tiempo real -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <!-- Configuración personalizada de Firebase (rellenar con tus llaves) -->
+    <script src="firebase-config.js"></script>
+    <!-- Leaflet para el mapa interactivo -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+    <!-- Script personalizado para la funcionalidad de la página -->
+    <script src="script.js"></script>
+
+    <!-- Registro del Service Worker para PWA -->
+    <script>
+        // Registrar Service Worker para PWA
+        if ('serviceWorker' in navigator) {
+            // Detectar si estamos en modo standalone (PWA instalada)
+            const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
+                window.navigator.standalone ||
+                document.referrer.includes('android-app://');
+
+            navigator.serviceWorker.register('/sw.js')
+                .then((registration) => {
+                    console.log('✅ Service Worker registrado:', registration.scope);
+
+                    // IMPORTANTE: Forzar actualización del SW en cada carga en modo standalone
+                    if (isStandalone) {
+                        registration.update().then(() => {
+                            console.log('🔄 Service Worker actualizado en modo standalone');
+                        });
+                    }
+
+                    // Detectar cuando hay un nuevo SW esperando
+                    registration.addEventListener('updatefound', () => {
+                        const newWorker = registration.installing;
+                        newWorker.addEventListener('statechange', () => {
+                            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                console.log('🆕 Nuevo Service Worker disponible, aplicando...');
+                                newWorker.postMessage({ type: 'SKIP_WAITING' });
+                                window.location.reload();
+                            }
+                        });
+                    });
+                })
+                .catch((error) => {
+                    console.error('❌ Error registrando Service Worker:', error);
+                });
+
+            // Recargar cuando el nuevo SW tome control
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                console.log('🔄 Service Worker actualizado, recargando...');
+                window.location.reload();
+            });
+        }
+
+        // Mostrar botón de instalación cuando esté disponible
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+
+            // Crear botón de instalación
+            const installBtn = document.createElement('button');
+            installBtn.className = 'install-app-btn';
+            installBtn.innerHTML = '<i class="fas fa-download"></i> Instalar App';
+            installBtn.style.cssText = `
+                position: fixed;
+                bottom: 5rem;
+                right: 2rem;
+                background: linear-gradient(135deg, #ff8fa3, #ff6b8a);
+                color: white;
+                border: none;
+                padding: 0.8rem 1.2rem;
+                border-radius: 30px;
+                font-weight: 600;
+                cursor: pointer;
+                box-shadow: 0 8px 25px rgba(255, 143, 163, 0.5);
+                z-index: 999;
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+                animation: pulse 2s infinite;
+            `;
+
+            installBtn.addEventListener('click', async () => {
+                if (deferredPrompt) {
+                    deferredPrompt.prompt();
+                    const { outcome } = await deferredPrompt.userChoice;
+                    if (outcome === 'accepted') {
+                        console.log('✅ App instalada');
+                    }
+                    deferredPrompt = null;
+                    installBtn.remove();
+                }
+            });
+
+            document.body.appendChild(installBtn);
+        });
+
+        // Ocultar botón si ya está instalada
+        window.addEventListener('appinstalled', () => {
+            const installBtn = document.querySelector('.install-app-btn');
+            if (installBtn) installBtn.remove();
+            console.log('✅ PWA instalada exitosamente');
+        });
+    </script>
+</body>
+
+</html>
