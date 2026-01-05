@@ -1,5 +1,5 @@
 // Service Worker para PWA - Ale y Mili Album
-const CACHE_NAME = 'ale-mili-album-v5'; // v5: Forzar actualización para fix de duplicados
+const CACHE_NAME = 'ale-mili-album-v1000'; // v1000: Forzar actualización
 const STATIC_ASSETS = [
     './',
     './index.html',
