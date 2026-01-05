@@ -1764,36 +1764,30 @@ document.addEventListener('DOMContentLoaded', function () {
     const uploadSubmitBtn = document.getElementById('uploadSubmitBtn');
     const uploadStatusText = document.getElementById('uploadStatusText');
 
+    // Helper functions for timeline - defined outside refreshTimeline so generateTimeline can access them
+    const isValidDate = (d) => {
+        if (!d) return false;
+        const str = String(d).trim();
+        if (!str || str === 'NaN' || str === 'undefined' || str === 'null' || str === 'Invalid Date') return false;
+        const date = new Date(d);
+        if (isNaN(date.getTime())) return false;
+        if (date.getFullYear() < 2000 || date.getFullYear() > 2100) return false;
+        return true;
+    };
+
+    const normalizeForDedup = (str) => {
+        return (str || '')
+            .toLowerCase()
+            .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+            .replace(/[^a-z0-9]/g, '')
+            .trim();
+    };
+
     function refreshTimeline() {
         const addedIds = new Set();
         const allItems = [];
 
-        // Función auxiliar para validar fechas
-
-        // Función auxiliar para validar fechas (ESTRICTA)
-        const isValidDate = (d) => {
-            if (!d) return false;
-            const str = String(d).trim();
-            if (!str || str === 'NaN' || str === 'undefined' || str === 'null' || str === 'Invalid Date') return false;
-            // Check for valid format YYYY-MM-DD roughly or standard date
-            const date = new Date(d);
-            if (isNaN(date.getTime())) return false;
-            // Extra check: year must be reasonable (e.g., > 2000)
-            if (date.getFullYear() < 2000 || date.getFullYear() > 2100) return false;
-            return true;
-        };
-
-        // Helper para normalizar titulos para deduplicación
-        const normalizeForDedup = (str) => {
-            return (str || '')
-                .toLowerCase()
-                .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // Remover acentos
-                .replace(/[^a-z0-9]/g, '') // Solo alfanuméricos (remueve emojis y signos)
-                .trim();
-        };
-
         // LIMPIEZA AUTOMÁTICA DE LOCALSTORAGE (SELF-HEALING)
-        // Se ejecuta cada vez para asegurar que datos corruptos viejos se borren
         cleanupBadData(isValidDate, normalizeForDedup);
 
         // Procesar items de Firebase y fallback
