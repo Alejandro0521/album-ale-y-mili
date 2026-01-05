@@ -3397,6 +3397,7 @@ document.addEventListener('DOMContentLoaded', function () {
     setTimeout(() => {
         applyStoredLikes();
         updateFeaturedPhotos();
+        refreshTimeline(); // Asegurar que timeline se actualice
     }, 500);
 
 });
