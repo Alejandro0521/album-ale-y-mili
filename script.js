@@ -3522,5 +3522,11 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+    // Asegurar que la UI se actualice al menos una vez al cargar
+    setTimeout(() => {
+        applyStoredLikes();
+        updateFeaturedPhotos();
+    }, 500);
+
 });
 
