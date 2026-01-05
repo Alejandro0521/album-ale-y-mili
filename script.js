@@ -1,4 +1,26 @@
+// Global Helpers - Renamed to bypass cache issues
+window.validateGlobalDate = function (d) {
+    if (!d) return false;
+    const str = String(d).trim();
+    if (!str || str === 'NaN' || str === 'undefined' || str === 'null' || str === 'Invalid Date') return false;
+    const date = new Date(d);
+    if (isNaN(date.getTime())) return false;
+    if (date.getFullYear() < 2000 || date.getFullYear() > 2100) return false;
+    return true;
+};
+
+window.normalizeGlobalString = function (str) {
+    return (str || '')
+        .toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]/g, '')
+        .trim();
+};
+
 document.addEventListener('DOMContentLoaded', function () {
+    // Helpers moved to window scope
+
+
     // Inicializar Swiper responsive: slide en móvil, coverflow en desktop
     // Configuracion reutilizable de Swiper
     const swiperConfig = {
@@ -774,6 +796,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const uniqueLikedItems = [];
         const seenKeys = new Set();
+        const seenUrls = new Set(); // [NEW] Deduplicate by content
         const availableKeys = new Set();
 
         galleryItems.forEach(item => {
@@ -788,6 +811,25 @@ document.addEventListener('DOMContentLoaded', function () {
             const isLiked = storedLiked || iconLiked;
 
             if (!isLiked) return;
+
+            // [NEW] Check for visual duplicates (same URL)
+            const img = item.querySelector('img');
+            const video = item.querySelector('video');
+            let mediaUrl = '';
+
+            if (img) {
+                mediaUrl = img.src;
+            } else if (video) {
+                const source = video.querySelector('source');
+                mediaUrl = source ? source.src : video.currentSrc || video.src;
+            }
+
+            // Normalize URL for comparison (ignore query params if needed, but usually full match is safer for strict dedup)
+            if (mediaUrl) {
+                if (seenUrls.has(mediaUrl)) return;
+                seenUrls.add(mediaUrl);
+            }
+
             seenKeys.add(key);
             uniqueLikedItems.push({ item, key });
         });
@@ -808,7 +850,14 @@ document.addEventListener('DOMContentLoaded', function () {
         if (uniqueLikedItems.length === 0) {
             const noLikesSlide = document.createElement('div');
             noLikesSlide.className = 'swiper-slide';
-            noLikesSlide.innerHTML = '<div class="no-likes-message">Da like a tus fotos favoritas para verlas aquí</div>';
+            noLikesSlide.innerHTML = `
+                <div class="featured-photo-card no-likes-card">
+                    <div class="no-likes-message">
+                         <i class="far fa-heart"></i>
+                         <p>Las fotos que más te gusten aparecerán aquí ❤️</p>
+                    </div>
+                </div>
+            `;
             featuredPhotosContainerEl.appendChild(noLikesSlide);
         } else {
             uniqueLikedItems.forEach(({ item, key }) => {
@@ -845,26 +894,49 @@ document.addEventListener('DOMContentLoaded', function () {
                     clone.style.objectFit = 'cover';
                     mediaWrapper.appendChild(clone);
                 } else if (originalVideo) {
-                    const videoClone = document.createElement('video');
+                    const videoClone = originalVideo.cloneNode(true);
+
+                    videoClone.removeAttribute('controls');
                     videoClone.muted = true;
-                    videoClone.loop = true;
                     videoClone.autoplay = true;
+                    videoClone.loop = true;
                     videoClone.playsInline = true;
-                    videoClone.setAttribute('aria-label', 'Video destacado');
+                    videoClone.preload = 'auto';
+
+                    videoClone.setAttribute('muted', '');
+                    videoClone.setAttribute('autoplay', '');
+                    videoClone.setAttribute('loop', '');
+                    videoClone.setAttribute('playsinline', '');
+                    videoClone.setAttribute('webkit-playsinline', '');
+                    videoClone.setAttribute('preload', 'auto');
+
+                    videoClone.style.display = 'block';
                     videoClone.style.width = '100%';
                     videoClone.style.height = '100%';
                     videoClone.style.objectFit = 'cover';
+                    videoClone.style.background = '#000';
 
-                    const source = originalVideo.querySelector('source');
-                    if (source) {
-                        videoClone.appendChild(source.cloneNode(true));
-                    } else if (originalVideo.currentSrc) {
-                        const sourceEl = document.createElement('source');
-                        sourceEl.src = originalVideo.currentSrc;
-                        sourceEl.type = originalVideo.type || 'video/mp4';
-                        videoClone.appendChild(sourceEl);
-                    }
+                    // Force render first frame (virtual poster)
+                    videoClone.addEventListener('loadeddata', () => {
+                        if (videoClone.readyState >= 2) {
+                            videoClone.currentTime = 0.1;
+                        }
+                    });
+
+                    mediaWrapper.style.position = 'relative';
                     mediaWrapper.appendChild(videoClone);
+
+                    // Allow manual toggle without overlay
+                    mediaWrapper.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        if (videoClone.paused) {
+                            videoClone.play().catch(() => { });
+                        } else {
+                            videoClone.pause();
+                        }
+                    });
+
+                    videoClone.load();
                 }
 
                 // NO agregamos caption/figcaption
@@ -875,31 +947,76 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         }
 
-        if (swiper && typeof swiper.update === 'function') {
-            swiper.params.loopAdditionalSlides = Math.max(1, uniqueLikedItems.length);
-            if (typeof swiper.loopDestroy === 'function' && typeof swiper.loopCreate === 'function') {
-                swiper.loopDestroy();
-                swiper.loopCreate();
-            }
-            swiper.updateSlides();
-            swiper.updateProgress();
-            swiper.updateSize();
-            swiper.update();
-            if (typeof swiper.slideToLoop === 'function') {
-                swiper.slideToLoop(0, 0, false);
-            }
-            if (swiper.autoplay && typeof swiper.autoplay.stop === 'function' && typeof swiper.autoplay.start === 'function') {
-                swiper.autoplay.stop();
-                swiper.autoplay.start();
-            }
+        if (window.featuredSwiper) {
+            window.featuredSwiper.destroy(true, true);
         }
+
+        // Loop es infinito real si hay mas de 1 slide.
+        const shouldLoop = featuredPhotosContainerEl.children.length > 1;
+        const itemCount = uniqueLikedItems.length;
+
+        const currentConfig = {
+            ...swiperConfig,
+            loop: shouldLoop,
+            loopedSlides: Math.max(itemCount, 5),
+            on: {
+                init: function () {
+                    // Esperar un tick para asegurar que el DOM este listo
+                    setTimeout(() => {
+                        const swiper = this;
+                        if (swiper.slides) {
+                            // Pausar todos
+                            swiper.slides.forEach(slide => {
+                                const v = slide.querySelector('video');
+                                if (v) v.pause();
+                            });
+                            // Reproducir activo
+                            const activeSlide = swiper.slides[swiper.activeIndex];
+                            if (activeSlide) {
+                                const vid = activeSlide.querySelector('video');
+                                if (vid) {
+                                    vid.muted = true;
+                                    vid.play().catch(e => console.log('Init autoplay error', e));
+                                }
+                            }
+                        }
+                    }, 100);
+                },
+                slideChangeTransitionEnd: function () {
+                    const swiper = this;
+                    // Pausar todos
+                    swiper.slides.forEach(slide => {
+                        const v = slide.querySelector('video');
+                        if (v) v.pause();
+                    });
+
+                    // Reproducir activo
+                    const activeSlide = swiper.slides[swiper.activeIndex];
+                    if (activeSlide) {
+                        const vid = activeSlide.querySelector('video');
+                        if (vid) {
+                            vid.muted = true;
+                            vid.play().catch(e => console.log('Slide autoplay error', e));
+                        }
+                    }
+                }
+            }
+        };
+
+        window.featuredSwiper = new Swiper('.featured-swiper', currentConfig);
+
+        // Fallback inicial
+        featuredPhotosContainerEl.querySelectorAll('video').forEach(vid => {
+            vid.muted = true;
+            vid.play().catch(() => { });
+        });
     }
 
     // Forzar actualización de Swiper al cargar todo para asegurar centrado
     window.addEventListener('load', function () {
-        if (typeof swiper !== 'undefined' && swiper) {
-            swiper.update();
-            swiper.slideToLoop(0, 0); // Ir al inicio forzosamente
+        if (window.featuredSwiper) {
+            window.featuredSwiper.update();
+            window.featuredSwiper.slideToLoop(0, 0); // Ir al inicio forzosamente
         }
         if (typeof timelineSwiper !== 'undefined' && timelineSwiper) {
             timelineSwiper.update();
@@ -919,104 +1036,7 @@ document.addEventListener('DOMContentLoaded', function () {
     //     });
     // }
 
-    function updateFeaturedPhotos() {
-        if (!featuredPhotosContainerEl) return;
 
-        // Collect all items (Firebase + Local + Static)
-        const allItems = [];
-
-        // 1. Dynamic Items (Firebase + Local)
-        [...firebaseItems, ...fallbackItems].forEach(item => {
-            allItems.push({
-                ...item,
-                key: item.id
-            });
-        });
-
-        // 2. Static Items
-        // Fix: Static items don't have data-dynamic="false", they just don't have the attribute.
-        document.querySelectorAll('.gallery-item:not([data-dynamic="true"])').forEach(item => {
-            const key = ensureGalleryKey(item);
-            const img = item.querySelector('img');
-            const video = item.querySelector('video');
-            const title = item.querySelector('.photo-info h3')?.innerText || '';
-            const location = item.querySelector('.photo-location')?.innerText || '';
-            const mediaUrl = video ? (video.querySelector('source')?.src || video.src) : (img?.src || '');
-
-            allItems.push({
-                key: key,
-                title: title,
-                location: location,
-                mediaType: video ? 'video' : 'image',
-                mediaUrl: mediaUrl,
-                isStatic: true
-            });
-        });
-
-        // Filtrar items que tienen LIKE
-        const displayedItems = allItems.filter(item => storedLikedKeys.has(item.key));
-
-        // Clear container
-        featuredPhotosContainerEl.innerHTML = '';
-
-        if (displayedItems.length === 0) {
-            // Mostrar placeholder para que la sección SIEMPRE aparezca
-            const slide = document.createElement('div');
-            slide.className = 'swiper-slide';
-            // Importante: slide tipo placeholder no debe tener data-featureKey clicable
-            slide.innerHTML = `
-                <div class="featured-photo-card no-likes-card">
-                    <div class="no-likes-message">
-                        <i class="far fa-heart"></i>
-                        <p>Las fotos que más te gusten aparecerán aquí ❤️</p>
-                    </div>
-                </div>
-             `;
-            featuredPhotosContainerEl.appendChild(slide);
-        } else {
-            // Render items
-            displayedItems.forEach(item => {
-                const slide = document.createElement('div');
-                slide.className = 'swiper-slide';
-                slide.dataset.featureKey = item.key;
-
-                let mediaHtml = '';
-                if (item.mediaType === 'video') {
-                    mediaHtml = `<video src="${item.mediaUrl}" muted playsinline></video>`;
-                } else {
-                    mediaHtml = `<img src="${item.mediaUrl}" alt="${item.title}" loading="lazy">`;
-                }
-
-                slide.innerHTML = `
-                    <div class="featured-photo-card">
-                        ${mediaHtml}
-                        <div class="featured-overlay">
-                             <span class="featured-icon"><i class="fas fa-heart"></i></span>
-                        </div>
-                    </div>
-                `;
-
-                // Click to open modal
-                slide.addEventListener('click', () => {
-                    const targetItem = findGalleryItemByKey(item.key);
-                    if (targetItem) openGalleryItemInModal(targetItem);
-                });
-
-                featuredPhotosContainerEl.appendChild(slide);
-            });
-        }
-
-        // Re-iniciar swiper completamente para evitar problemas con loop y DOM dinámico
-        if (window.featuredSwiper) {
-            window.featuredSwiper.destroy(true, true);
-        }
-
-        // Desactivar loop si hay 1 o menos slides (incluyendo el placeholder) para evitar glitch visual
-        const shouldLoop = featuredPhotosContainerEl.children.length > 1;
-        const currentConfig = { ...swiperConfig, loop: shouldLoop };
-
-        window.featuredSwiper = new Swiper('.featured-swiper', currentConfig);
-    }
 
     function toggleLike(button, targetItem = null) {
         if (!button) return;
@@ -1320,7 +1340,7 @@ document.addEventListener('DOMContentLoaded', function () {
             let signature = item.id; // Default to ID
             // If data is sufficient, use content signature to catch duplicate uploads
             if (item.title && item.date) {
-                const normTitle = normalizeForDedup(item.title);
+                const normTitle = window.normalizeGlobalString(item.title);
                 const datePart = item.date.split('T')[0];
                 signature = `${normTitle}|${datePart}`;
             }
@@ -1335,7 +1355,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const uniqueFallbackItems = fallbackItems.filter(item => {
             // If local item matches a Firebase item signature, skip it
             if (item.title && item.date) {
-                const normTitle = normalizeForDedup(item.title);
+                const normTitle = window.normalizeGlobalString(item.title);
                 const datePart = item.date.split('T')[0];
                 const signature = `${normTitle}|${datePart}`;
                 return !firebaseSignatures.has(signature);
@@ -1764,42 +1784,22 @@ document.addEventListener('DOMContentLoaded', function () {
     const uploadSubmitBtn = document.getElementById('uploadSubmitBtn');
     const uploadStatusText = document.getElementById('uploadStatusText');
 
+
+
     function refreshTimeline() {
+        const isValidDate = window.validateGlobalDate; // FAIL-SAFE LOCAL DEFINITION
+        const normalizeForDedup = window.normalizeGlobalString; // FAIL-SAFE LOCAL DEFINITION
         const addedIds = new Set();
         const allItems = [];
 
-        // Función auxiliar para validar fechas
-
-        // Función auxiliar para validar fechas (ESTRICTA)
-        const isValidDate = (d) => {
-            if (!d) return false;
-            const str = String(d).trim();
-            if (!str || str === 'NaN' || str === 'undefined' || str === 'null' || str === 'Invalid Date') return false;
-            // Check for valid format YYYY-MM-DD roughly or standard date
-            const date = new Date(d);
-            if (isNaN(date.getTime())) return false;
-            // Extra check: year must be reasonable (e.g., > 2000)
-            if (date.getFullYear() < 2000 || date.getFullYear() > 2100) return false;
-            return true;
-        };
-
-        // Helper para normalizar titulos para deduplicación
-        const normalizeForDedup = (str) => {
-            return (str || '')
-                .toLowerCase()
-                .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // Remover acentos
-                .replace(/[^a-z0-9]/g, '') // Solo alfanuméricos (remueve emojis y signos)
-                .trim();
-        };
-
         // LIMPIEZA AUTOMÁTICA DE LOCALSTORAGE (SELF-HEALING)
         // Se ejecuta cada vez para asegurar que datos corruptos viejos se borren
-        cleanupBadData(isValidDate, normalizeForDedup);
+        cleanupBadData(window.validateGlobalDate, window.normalizeGlobalString);
 
         // Procesar items de Firebase y fallback
         [...firebaseItems, ...fallbackItems].forEach(item => {
             if (item.id && !addedIds.has(item.id)) {
-                if (isValidDate(item.date)) {
+                if (window.validateGlobalDate(item.date)) {
                     allItems.push(item);
                     addedIds.add(item.id);
                 }
@@ -1819,17 +1819,17 @@ document.addEventListener('DOMContentLoaded', function () {
                     const dateValue = storedStaticEdits[key].date;
 
                     // Check 2: Fecha válida (Validación Estricta)
-                    if (!isValidDate(dateValue)) return;
+                    if (!window.validateGlobalDate(dateValue)) return;
 
                     // Check 3: Evitar duplicados por contenido (Título + Fecha)
                     const titleEl = item.querySelector('.photo-info h3');
                     const title = storedStaticEdits[key].title || (titleEl ? titleEl.textContent : '');
 
                     // Si ya existe un item con el mismo título (normalizado) y fecha, lo ignoramos
-                    const titleNormalized = normalizeForDedup(title);
+                    const titleNormalized = window.normalizeGlobalString(title);
 
                     const isContentDuplicate = allItems.some(existing => {
-                        const existingTitleNorm = normalizeForDedup(existing.title || '');
+                        const existingTitleNorm = window.normalizeGlobalString(existing.title || '');
                         return existingTitleNorm === titleNormalized && existing.date === dateValue;
                     });
 
@@ -1877,13 +1877,13 @@ document.addEventListener('DOMContentLoaded', function () {
             // 1. Validar fecha
             if (!item.date || item.mediaType === 'audio') return false;
             // Strict date validation
-            if (!isValidDate(item.date)) return false;
+            if (!window.validateGlobalDate(item.date)) return false;
 
             const d = new Date(item.date);
             // 2. Validar duplicado visual (Titulo Normalizado + Fecha)
             // Normalizar valores para evitar diferencias sutiles (espacios, mayúsculas, emojis)
             const dateNormalized = d.toISOString().split('T')[0]; // Comparar solo YYYY-MM-DD
-            const titleNormalized = normalizeForDedup(item.title || '');
+            const titleNormalized = window.normalizeGlobalString(item.title || '');
 
             const signature = `${titleNormalized}|${dateNormalized}`;
 
@@ -3230,302 +3230,194 @@ document.addEventListener('DOMContentLoaded', function () {
     // Iniciar partículas después de un pequeño delay
     setTimeout(startParticles, 1000);
 
-    // --- EDIT SYSTEM IMPLEMENTATION ---
-    // Wrapped in safety check to prevent breaking Firebase loading
-    if (document.getElementById('editModal')) {
-        try {
-            const editModal = document.getElementById('editModal');
-            const editModalClose = document.getElementById('editModalClose');
-            const editForm = document.getElementById('editForm');
-            const editTitleInput = document.getElementById('editDescription');
-            const editDateInput = document.getElementById('editDate');
-            const editItemIdInput = document.getElementById('editItemId');
-            const editItemKeyInput = document.getElementById('editItemKey');
-            const editItemTypeInput = document.getElementById('editItemType');
+    // --- NEW SIMPLIFIED EDIT SYSTEM ---
+    function setupEditSystem() {
+        const isValidDate = window.validateGlobalDate; // FAIL-SAFE LOCAL DEFINITION
+        if (!document.getElementById('editModal')) return;
 
-            // Load Static Edits from Firebase
-            function loadStaticEdits() {
-                if (!firebaseDb) {
-                    // Fallback a localStorage si no hay Firebase
-                    try {
-                        const raw = localStorage.getItem(STATIC_EDITS_KEY);
-                        if (raw) {
-                            storedStaticEdits = JSON.parse(raw);
-                        }
-                    } catch (e) {
-                        console.warn('Error loading static edits from localStorage', e);
-                        storedStaticEdits = {};
-                    }
-                    return;
-                }
+        const editModal = document.getElementById('editModal');
+        const editModalClose = document.getElementById('editModalClose');
+        const editForm = document.getElementById('editForm');
 
-                // Cargar desde Firebase
-                firebaseDb.collection('imageEdits').get()
-                    .then(snapshot => {
-                        snapshot.forEach(doc => {
-                            const data = doc.data();
-                            const dateValue = data.date || '';
+        // Inputs
+        const editTitleInput = document.getElementById('editDescription');
+        const editDateInput = document.getElementById('editDate');
+        const editItemIdInput = document.getElementById('editItemId');
+        const editItemKeyInput = document.getElementById('editItemKey');
+        const editItemTypeInput = document.getElementById('editItemType');
 
-                            // VALIDAR: Solo guardar si la fecha es válida
-                            if (dateValue && dateValue !== 'NaN' && dateValue !== 'undefined' && dateValue !== 'null') {
-                                storedStaticEdits[doc.id] = {
-                                    title: data.title || '',
-                                    date: dateValue
-                                };
-                            } else {
-                                // Limpiar datos inválidos de Firebase
-                                console.warn('Fecha inválida encontrada, limpiando:', doc.id, dateValue);
-                                firebaseDb.collection('imageEdits').doc(doc.id).delete()
-                                    .catch(e => console.warn('Error limpiando dato inválido', e));
-                            }
-                        });
-                        applyStaticEdits();
-                    })
-                    .catch(e => {
-                        console.warn('Error loading edits from Firebase', e);
-                    });
-            }
-
-            function saveStaticEdits() {
-                if (!firebaseDb) {
-                    // Fallback a localStorage
-                    try {
-                        localStorage.setItem(STATIC_EDITS_KEY, JSON.stringify(storedStaticEdits));
-                    } catch (e) {
-                        console.error('Error saving static edits', e);
-                    }
-                    return;
-                }
-
-                // Guardar en Firebase (no necesita save explícito, se hace en tiempo real)
-                // La función de edición ya guarda directamente
-            }
-
-            function applyStaticEdits() {
-                // iterate over all gallery items, if key matches, update DOM
-                document.querySelectorAll('.gallery-item').forEach(item => {
-                    const key = ensureGalleryKey(item);
-                    if (storedStaticEdits[key]) {
-                        const data = storedStaticEdits[key];
-                        const titleEl = item.querySelector('.photo-info h3');
-                        if (titleEl && data.title) titleEl.textContent = data.title;
-                    }
-                });
-            }
-
-            function injectEditButtons() {
-                document.querySelectorAll('.gallery-item').forEach(item => {
-                    let overlay = item.querySelector('.photo-overlay');
-                    if (!overlay) {
-                        const container = item.querySelector('.photo-container');
-                        if (container) {
-                            overlay = document.createElement('div');
-                            overlay.className = 'photo-overlay';
-                            container.appendChild(overlay);
-                        } else {
-                            return;
-                        }
-                    }
-
-                    // Check if edit button exists
-                    if (!overlay.querySelector('.edit-btn')) {
-                        const editBtn = document.createElement('button');
-                        editBtn.className = 'edit-btn';
-                        editBtn.title = 'Editar';
-                        editBtn.innerHTML = '<i class="fas fa-pen"></i>';
-                        editBtn.addEventListener('click', (e) => {
-                            e.stopPropagation();
-                            openEditModal(item);
-                        });
-                        if (overlay.firstChild) {
-                            overlay.insertBefore(editBtn, overlay.firstChild);
-                        } else {
-                            overlay.appendChild(editBtn);
-                        }
+        // 1. Inject Edit Buttons (Simple & Direct)
+        function injectEditButtons() {
+            document.querySelectorAll('.gallery-item').forEach(item => {
+                let overlay = item.querySelector('.photo-overlay');
+                // Ensure overlay exists
+                if (!overlay) {
+                    const container = item.querySelector('.photo-container');
+                    if (container) {
+                        overlay = document.createElement('div');
+                        overlay.className = 'photo-overlay';
+                        container.appendChild(overlay);
                     } else {
-                        const existingBtn = overlay.querySelector('.edit-btn');
-                        if (!existingBtn.dataset.editBound) {
-                            existingBtn.dataset.editBound = 'true';
-                            existingBtn.addEventListener('click', (e) => {
-                                e.stopPropagation();
-                                openEditModal(item);
-                            });
-                        }
-                    }
-                });
-            }
-
-            function openEditModal(item) {
-                if (!item) return;
-                const key = ensureGalleryKey(item);
-                const isDynamic = item.dataset.dynamic === 'true';
-                const docId = item.getAttribute('data-doc-id');
-
-                let type = 'static';
-                let currentTitle = '';
-                let currentDate = '';
-
-                const titleEl = item.querySelector('.photo-info h3');
-                currentTitle = titleEl ? titleEl.textContent : '';
-
-                if (isDynamic) {
-                    const dataItem = firebaseItems.find(i => i.id === docId) || fallbackItems.find(i => i.id === docId);
-                    if (dataItem) {
-                        type = (firebaseItems.some(i => i.id === docId)) ? 'firebase' : 'local';
-                        currentTitle = dataItem.title;
-                        currentDate = dataItem.date || '';
-                    }
-                } else {
-                    if (storedStaticEdits[key]) {
-                        currentTitle = storedStaticEdits[key].title || currentTitle;
-                        currentDate = storedStaticEdits[key].date || '';
+                        return;
                     }
                 }
 
-                editItemIdInput.value = docId || '';
-                editItemKeyInput.value = key;
-                editItemTypeInput.value = type;
-                editTitleInput.value = currentTitle;
-                editDateInput.value = currentDate;
+                // Add button if missing
+                if (!overlay.querySelector('.edit-btn')) {
+                    const btn = document.createElement('button');
+                    btn.className = 'edit-btn';
+                    btn.title = 'Editar';
+                    btn.innerHTML = '<i class="fas fa-pen"></i>';
 
-                editModal.style.display = 'flex';
-            }
+                    // Direct click handler
+                    btn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        openEditModal(item);
+                    });
 
-            if (editModalClose) {
-                editModalClose.addEventListener('click', () => {
-                    editModal.style.display = 'none';
-                });
-            }
-
-            window.addEventListener('click', (e) => {
-                if (e.target === editModal) {
-                    editModal.style.display = 'none';
+                    // Add to beginning of overlay
+                    if (overlay.firstChild) {
+                        overlay.insertBefore(btn, overlay.firstChild);
+                    } else {
+                        overlay.appendChild(btn);
+                    }
                 }
             });
+        }
 
-            if (editForm) {
-                editForm.addEventListener('submit', async (e) => {
-                    e.preventDefault();
-                    const newTitle = editTitleInput.value.trim();
-                    const newDate = editDateInput.value;
-                    const type = editItemTypeInput.value;
-                    const key = editItemKeyInput.value;
-                    const docId = editItemIdInput.value;
+        // 2. Open Modal Logic
+        function openEditModal(item) {
+            const key = ensureGalleryKey(item);
+            const isDynamic = item.dataset.dynamic === 'true';
+            const docId = item.getAttribute('data-doc-id');
+            const titleEl = item.querySelector('.photo-info h3');
 
-                    const saveBtn = editForm.querySelector('.save-edit-btn');
-                    const originalBtnText = saveBtn.innerHTML;
-                    saveBtn.disabled = true;
-                    saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
+            let currentTitle = titleEl ? titleEl.textContent : '';
+            let currentDate = '';
+            let type = 'static';
 
-                    try {
-                        if (type === 'firebase') {
-                            if (firebaseDb) {
-                                await firebaseDb.collection('gallery').doc(docId).update({
-                                    title: newTitle,
-                                    // Note: uploadedAt no se actualiza, solo title
-                                });
-                            }
-                        } else if (type === 'local') {
-                            const idx = fallbackItems.findIndex(i => i.id === docId);
-                            if (idx !== -1) {
-                                fallbackItems[idx].title = newTitle;
-                                fallbackItems[idx].date = newDate;
-                                saveFallbackItems();
-                                refreshDynamicItems();
-                            }
-                        } else {
-                            // Static - Guardar en Firebase
-                            storedStaticEdits[key] = { title: newTitle, date: newDate };
+            // Determine values based on type
+            if (isDynamic) {
+                // Try to find in arrays
+                const fireItem = firebaseItems.find(i => i.id === docId);
+                const localItem = fallbackItems.find(i => i.id === docId);
 
-                            if (firebaseDb) {
-                                await firebaseDb.collection('imageEdits').doc(key).set({
-                                    title: newTitle,
-                                    date: newDate,
-                                    editedAt: firebase.firestore.FieldValue.serverTimestamp()
-                                });
-                            } else {
-                                // Fallback a localStorage si no hay Firebase
-                                saveStaticEdits();
-                            }
+                if (fireItem) {
+                    type = 'firebase';
+                    currentTitle = fireItem.title;
+                    currentDate = fireItem.date;
+                } else if (localItem) {
+                    type = 'local';
+                    currentTitle = localItem.title;
+                    currentDate = localItem.date;
+                }
+            } else {
+                // Check static storage
+                if (storedStaticEdits[key]) {
+                    currentTitle = storedStaticEdits[key].title || currentTitle;
+                    currentDate = storedStaticEdits[key].date || '';
+                }
+            }
 
-                            applyStaticEdits();
-                            refreshTimeline();
-                        }
-                        editModal.style.display = 'none';
-                        showBanner('Cambios guardados correctamente', { persistent: false });
+            // Populate Form
+            editItemIdInput.value = docId || '';
+            editItemKeyInput.value = key || '';
+            editItemTypeInput.value = type;
+            editTitleInput.value = currentTitle;
+            editDateInput.value = currentDate; // YYYY-MM-DD standard
 
-                    } catch (err) {
-                        console.error('Error saving edits:', err);
-                        alert('Hubo un error al guardar los cambios: ' + err.message);
-                    } finally {
-                        saveBtn.disabled = false;
-                        saveBtn.innerHTML = originalBtnText;
+            // Show
+            editModal.style.display = 'flex';
+        }
+
+        // 3. Handle Form Submit
+        editForm.onsubmit = async (e) => {
+            e.preventDefault();
+
+            const newTitle = editTitleInput.value.trim();
+            const newDate = editDateInput.value;
+            const type = editItemTypeInput.value;
+            const key = editItemKeyInput.value;
+            const docId = editItemIdInput.value;
+
+            // UI Feedback
+            const saveBtn = editForm.querySelector('.save-edit-btn');
+            const originalText = saveBtn.innerHTML;
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
+
+            try {
+                // --- Save Logic Switch ---
+                if (type === 'firebase') {
+                    if (firebaseDb) {
+                        await firebaseDb.collection('gallery').doc(docId).update({
+                            title: newTitle,
+                            // If you want to update date in firebase:
+                            // date: newDate 
+                        });
+                        // Note: Timeline uses 'uploadedAt' usually, but visual date override might be needed.
+                        // For now we trust specific logic or just title update for firebase items as per original code.
                     }
-                });
-            }
-
-            const modalEditBtn = document.querySelector('.modal-edit-btn');
-            if (modalEditBtn) {
-                modalEditBtn.style.display = 'inline-block';
-                modalEditBtn.addEventListener('click', () => {
-                    const activeKey = modal.dataset.activeFeatureKey;
-                    const item = findGalleryItemByKey(activeKey);
-                    if (item) {
-                        openEditModal(item);
-                        modal.style.display = 'none';
+                } else if (type === 'local') {
+                    const idx = fallbackItems.findIndex(i => i.id === docId);
+                    if (idx !== -1) {
+                        fallbackItems[idx].title = newTitle;
+                        fallbackItems[idx].date = newDate;
+                        saveFallbackItems();
                     }
-                });
-            }
+                } else {
+                    // STATIC items (and overrides)
+                    if (!storedStaticEdits[key]) storedStaticEdits[key] = {};
+                    storedStaticEdits[key].title = newTitle;
+                    storedStaticEdits[key].date = newDate;
 
-            loadStaticEdits();
-            injectEditButtons();
-            applyStaticEdits();
-
-            // LISTENER EN TIEMPO REAL para ediciones
-            if (firebaseDb) {
-                firebaseDb.collection('imageEdits').onSnapshot(snapshot => {
-                    snapshot.docChanges().forEach(change => {
-                        const key = change.doc.id;
-                        const data = change.doc.data();
-
-                        if (change.type === 'added' || change.type === 'modified') {
-                            storedStaticEdits[key] = {
-                                title: data.title || '',
-                                date: data.date || ''
-                            };
-                            applyStaticEdits();
-                            refreshTimeline(); // Actualizar timeline
-                        } else if (change.type === 'removed') {
-                            delete storedStaticEdits[key];
-                            applyStaticEdits();
-                            refreshTimeline(); // Actualizar timeline
-                        }
-                    });
-                });
-            }
-
-            document.addEventListener('click', (e) => {
-                const btn = e.target.closest('.edit-btn');
-                if (btn) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    const item = btn.closest('.gallery-item');
-                    if (item) {
-                        openEditModal(item);
+                    if (firebaseDb) {
+                        // Persist to Cloud 'imageEdits'
+                        await firebaseDb.collection('imageEdits').doc(key).set({
+                            title: newTitle,
+                            date: newDate,
+                            editedAt: firebase.firestore.FieldValue.serverTimestamp()
+                        });
                     } else {
-                        const parent = btn.closest('.photo-container');
-                        if (parent && parent.parentElement.classList.contains('gallery-item')) {
-                            openEditModal(parent.parentElement);
-                        }
+                        // Fallback LocalStorage
+                        localStorage.setItem(STATIC_EDITS_KEY, JSON.stringify(storedStaticEdits));
                     }
                 }
-            }, true);
 
-        } catch (editSystemError) {
-            console.error('Error en sistema de edición:', editSystemError);
-            // No rompe Firebase si el sistema de edición falla
-        }
+                // --- Success Actions ---
+                editModal.style.display = 'none';
+                showBanner('Cambios guardados correctamente', { persistent: false });
+
+                // Refresh UI
+                applyStaticEdits(); // For static titles
+                refreshDynamicItems(); // For dynamic lists
+                refreshTimeline(); // VITAL: Re-run timeline generation
+
+            } catch (err) {
+                console.error('Error saving:', err);
+                alert('Error al guardar: ' + err.message);
+            } finally {
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = originalText;
+            }
+        };
+
+        // Close Handlers
+        editModalClose.onclick = () => editModal.style.display = 'none';
+        window.onclick = (e) => {
+            if (e.target === editModal) editModal.style.display = 'none';
+        };
+
+        // Initial Calls
+        injectEditButtons();
+
+        // Expose for timeline or other external callers if needed
+        window.refreshEditButtons = injectEditButtons;
     }
+
+    // Initialize System
+    setupEditSystem();
 
     // Asegurar que la UI se actualice al menos una vez al cargar
     setTimeout(() => {
