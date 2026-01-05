@@ -1912,7 +1912,9 @@ document.addEventListener('DOMContentLoaded', function () {
         // Agrupar por Mes Año
         const groups = {};
         validItems.forEach(item => {
-            const dateObj = new Date(item.date + 'T12:00:00'); // Evitar timezone shift
+            // Extraer solo YYYY-MM-DD de fechas ISO
+            const datePart = String(item.date).split('T')[0];
+            const dateObj = new Date(datePart + 'T12:00:00'); // Evitar timezone shift
             const key = dateObj.toLocaleDateString('es-MX', { month: 'long', year: 'numeric' });
             if (!groups[key]) groups[key] = [];
             groups[key].push(item);
@@ -1948,7 +1950,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         ${mediaContent}
                     </div>
                     <div class="timeline-info">
-                        <span class="timeline-day">${new Date(item.date + 'T12:00:00').getDate()}</span>
+                        <span class="timeline-day">${new Date(String(item.date).split('T')[0] + 'T12:00:00').getDate()}</span>
                         <span class="timeline-title">${item.title || ''}</span>
                     </div>
                 `;
