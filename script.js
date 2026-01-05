@@ -1799,8 +1799,11 @@ document.addEventListener('DOMContentLoaded', function () {
         // Procesar items de Firebase y fallback
         [...firebaseItems, ...fallbackItems].forEach(item => {
             if (item.id && !addedIds.has(item.id)) {
-                if (isValidDate(item.date)) {
-                    allItems.push(item);
+                // Usar date si existe, sino usar uploadedAt
+                const itemDate = item.date || item.uploadedAt;
+                if (isValidDate(itemDate)) {
+                    // Crear copia con fecha normalizada
+                    allItems.push({ ...item, date: itemDate });
                     addedIds.add(item.id);
                 }
             }
