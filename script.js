@@ -1,6 +1,7 @@
 document.addEventListener('DOMContentLoaded', function () {
     // Inicializar Swiper responsive: slide en móvil, coverflow en desktop
-    window.featuredSwiper = new Swiper('.featured-swiper', {
+    // Configuracion reutilizable de Swiper
+    const swiperConfig = {
         effect: window.innerWidth >= 768 ? 'coverflow' : 'slide',
         grabCursor: true,
         centeredSlides: true,
@@ -20,7 +21,10 @@ document.addEventListener('DOMContentLoaded', function () {
             disableOnInteraction: false,
             reverseDirection: true // Gira hacia la izquierda
         },
-    });
+    };
+
+    // Inicializar Swiper responsive: slide en móvil, coverflow en desktop
+    window.featuredSwiper = new Swiper('.featured-swiper', swiperConfig);
 
 
     // Filtrado de categorías
@@ -1001,11 +1005,11 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         }
 
-        // Update swiper
+        // Re-iniciar swiper completamente para evitar problemas con loop y DOM dinámico
         if (window.featuredSwiper) {
-            window.featuredSwiper.update();
-            window.featuredSwiper.slideToLoop(0);
+            window.featuredSwiper.destroy(true, true);
         }
+        window.featuredSwiper = new Swiper('.featured-swiper', swiperConfig);
     }
 
     function toggleLike(button, targetItem = null) {
