@@ -3352,6 +3352,8 @@ document.addEventListener('DOMContentLoaded', function () {
                             const titleEl = item.querySelector('.photo-info h3');
                             if (titleEl && data.title) titleEl.textContent = data.title;
                         }
+                        // Actualizar línea de tiempo
+                        refreshTimeline();
                     } else if (change.type === 'removed') {
                         delete storedStaticEdits[key];
                     }
