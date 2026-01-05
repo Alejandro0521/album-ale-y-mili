@@ -922,7 +922,6 @@ document.addEventListener('DOMContentLoaded', function () {
         const allItems = [];
 
         // 1. Dynamic Items (Firebase + Local)
-        // Note: firebaseItems and fallbackItems are already loaded
         [...firebaseItems, ...fallbackItems].forEach(item => {
             allItems.push({
                 ...item,
@@ -949,34 +948,22 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         });
 
-        // Definir fotos que SIEMPRE deben aparecer (Por nombre de archivo aproximado)
-        const alwaysFeaturedFiles = [
-            'Portada.jpeg',
-            'feria 1.jpeg',
-            'SALIDA 1.jpeg',
-            'Video 1.mp4',
-            '4ta flor.jpeg'
-        ];
-
-        // Filter items that are liked OR are in the alwaysFeatured list
-        const displayedItems = allItems.filter(item => {
-            const isLiked = storedLikedKeys.has(item.key);
-            const isAlwaysFeatured = alwaysFeaturedFiles.some(f => item.mediaUrl && item.mediaUrl.includes(f));
-            return isLiked || isAlwaysFeatured;
-        });
+        // Filtrar items que tienen LIKE
+        const displayedItems = allItems.filter(item => storedLikedKeys.has(item.key));
 
         // Clear container
         featuredPhotosContainerEl.innerHTML = '';
 
         if (displayedItems.length === 0) {
-            // Fallback minimalista si no hay nada (raro con alwaysFeatured)
+            // Mostrar placeholder para que la sección SIEMPRE aparezca
             const slide = document.createElement('div');
             slide.className = 'swiper-slide';
+            // Importante: slide tipo placeholder no debe tener data-featureKey clicable
             slide.innerHTML = `
                 <div class="featured-photo-card no-likes-card">
                     <div class="no-likes-message">
                         <i class="far fa-heart"></i>
-                        <p>Tus momentos favoritos aparecerán aquí</p>
+                        <p>Las fotos que más te gusten aparecerán aquí ❤️</p>
                     </div>
                 </div>
              `;
@@ -1014,10 +1001,9 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         }
 
-        // Update swiper if instance exists
+        // Update swiper
         if (window.featuredSwiper) {
             window.featuredSwiper.update();
-            // Ir al inicio para ver las nuevas fotos
             window.featuredSwiper.slideToLoop(0);
         }
     }
