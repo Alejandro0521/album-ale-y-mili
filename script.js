@@ -937,40 +937,53 @@ document.addEventListener('DOMContentLoaded', function () {
             const video = item.querySelector('video');
             const title = item.querySelector('.photo-info h3')?.innerText || '';
             const location = item.querySelector('.photo-location')?.innerText || '';
+            const mediaUrl = video ? (video.querySelector('source')?.src || video.src) : (img?.src || '');
 
             allItems.push({
                 key: key,
                 title: title,
                 location: location,
                 mediaType: video ? 'video' : 'image',
-                mediaUrl: video ? (video.querySelector('source')?.src || video.src) : (img?.src || ''),
+                mediaUrl: mediaUrl,
                 isStatic: true
             });
         });
 
-        // Filter items that are liked
-        const likedItems = allItems.filter(item => storedLikedKeys.has(item.key));
+        // Definir fotos que SIEMPRE deben aparecer (Por nombre de archivo aproximado)
+        const alwaysFeaturedFiles = [
+            'Portada.jpeg',
+            'feria 1.jpeg',
+            'SALIDA 1.jpeg',
+            'Video 1.mp4',
+            '4ta flor.jpeg'
+        ];
+
+        // Filter items that are liked OR are in the alwaysFeatured list
+        const displayedItems = allItems.filter(item => {
+            const isLiked = storedLikedKeys.has(item.key);
+            const isAlwaysFeatured = alwaysFeaturedFiles.some(f => item.mediaUrl && item.mediaUrl.includes(f));
+            return isLiked || isAlwaysFeatured;
+        });
 
         // Clear container
         featuredPhotosContainerEl.innerHTML = '';
 
-        if (likedItems.length === 0) {
-            // Show placeholder or hide section? 
-            // Better show a placeholder slide
+        if (displayedItems.length === 0) {
+            // Fallback minimalista si no hay nada (raro con alwaysFeatured)
             const slide = document.createElement('div');
             slide.className = 'swiper-slide';
             slide.innerHTML = `
                 <div class="featured-photo-card no-likes-card">
                     <div class="no-likes-message">
                         <i class="far fa-heart"></i>
-                        <p>Dale like a tus fotos favoritas para verlas aquí</p>
+                        <p>Tus momentos favoritos aparecerán aquí</p>
                     </div>
                 </div>
              `;
             featuredPhotosContainerEl.appendChild(slide);
         } else {
-            // Render liked items
-            likedItems.forEach(item => {
+            // Render items
+            displayedItems.forEach(item => {
                 const slide = document.createElement('div');
                 slide.className = 'swiper-slide';
                 slide.dataset.featureKey = item.key;
@@ -1004,6 +1017,8 @@ document.addEventListener('DOMContentLoaded', function () {
         // Update swiper if instance exists
         if (window.featuredSwiper) {
             window.featuredSwiper.update();
+            // Ir al inicio para ver las nuevas fotos
+            window.featuredSwiper.slideToLoop(0);
         }
     }
 
