@@ -198,6 +198,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // Cargar likes desde Firebase
+    // Cargar likes desde Firebase en tiempo real
     function loadLikes() {
         if (!firebaseDb) {
             // Fallback a localStorage
@@ -208,6 +209,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (Array.isArray(parsed)) {
                     storedLikedKeys = new Set(parsed);
                 }
+                applyStoredLikes();
+                updateFeaturedPhotos(); // Initial update for local
             } catch (err) {
                 console.warn('No se pudieron cargar los likes almacenados.', err);
                 storedLikedKeys = new Set();
@@ -215,18 +218,17 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
-        // Cargar desde Firebase
-        firebaseDb.collection('likes').get()
-            .then(snapshot => {
-                storedLikedKeys.clear();
-                snapshot.forEach(doc => {
-                    storedLikedKeys.add(doc.id);
-                });
-                applyStoredLikes();
-            })
-            .catch(e => {
-                console.warn('Error loading likes from Firebase', e);
+        // Suscribirse a cambios en Firebase
+        firebaseDb.collection('likes').onSnapshot(snapshot => {
+            storedLikedKeys.clear();
+            snapshot.forEach(doc => {
+                storedLikedKeys.add(doc.id);
             });
+            applyStoredLikes();
+            updateFeaturedPhotos(); // Update featured photos whenever likes change
+        }, error => {
+            console.warn('Error listening to likes from Firebase', error);
+        });
     }
 
     function applyStoredLikes() {
@@ -913,6 +915,98 @@ document.addEventListener('DOMContentLoaded', function () {
     //     });
     // }
 
+    function updateFeaturedPhotos() {
+        if (!featuredPhotosContainerEl) return;
+
+        // Collect all items (Firebase + Local + Static)
+        const allItems = [];
+
+        // 1. Dynamic Items (Firebase + Local)
+        // Note: firebaseItems and fallbackItems are already loaded
+        [...firebaseItems, ...fallbackItems].forEach(item => {
+            allItems.push({
+                ...item,
+                key: item.id
+            });
+        });
+
+        // 2. Static Items
+        document.querySelectorAll('.gallery-item[data-dynamic="false"]').forEach(item => {
+            const key = ensureGalleryKey(item);
+            const img = item.querySelector('img');
+            const video = item.querySelector('video');
+            const title = item.querySelector('.photo-info h3')?.innerText || '';
+            const location = item.querySelector('.photo-location')?.innerText || '';
+
+            allItems.push({
+                key: key,
+                title: title,
+                location: location,
+                mediaType: video ? 'video' : 'image',
+                mediaUrl: video ? (video.querySelector('source')?.src || video.src) : (img?.src || ''),
+                isStatic: true
+            });
+        });
+
+        // Filter items that are liked
+        const likedItems = allItems.filter(item => storedLikedKeys.has(item.key));
+
+        // Clear container
+        featuredPhotosContainerEl.innerHTML = '';
+
+        if (likedItems.length === 0) {
+            // Show placeholder or hide section? 
+            // Better show a placeholder slide
+            const slide = document.createElement('div');
+            slide.className = 'swiper-slide';
+            slide.innerHTML = `
+                <div class="featured-photo-card no-likes-card">
+                    <div class="no-likes-message">
+                        <i class="far fa-heart"></i>
+                        <p>Dale like a tus fotos favoritas para verlas aquí</p>
+                    </div>
+                </div>
+             `;
+            featuredPhotosContainerEl.appendChild(slide);
+        } else {
+            // Render liked items
+            likedItems.forEach(item => {
+                const slide = document.createElement('div');
+                slide.className = 'swiper-slide';
+                slide.dataset.featureKey = item.key;
+
+                let mediaHtml = '';
+                if (item.mediaType === 'video') {
+                    mediaHtml = `<video src="${item.mediaUrl}" muted playsinline></video>`;
+                } else {
+                    mediaHtml = `<img src="${item.mediaUrl}" alt="${item.title}" loading="lazy">`;
+                }
+
+                slide.innerHTML = `
+                    <div class="featured-photo-card">
+                        ${mediaHtml}
+                        <div class="featured-overlay">
+                             <span class="featured-icon"><i class="fas fa-heart"></i></span>
+                        </div>
+                    </div>
+                `;
+
+                // Click to open modal
+                slide.addEventListener('click', () => {
+                    const targetItem = findGalleryItemByKey(item.key);
+                    if (targetItem) openGalleryItemInModal(targetItem);
+                });
+
+                featuredPhotosContainerEl.appendChild(slide);
+            });
+        }
+
+        // Update swiper if instance exists
+        if (window.featuredSwiper) {
+            window.featuredSwiper.update();
+        }
+    }
+
     function toggleLike(button, targetItem = null) {
         if (!button) return;
         const icon = button.querySelector('i');
@@ -1389,6 +1483,9 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!firebaseDb) {
             return;
         }
+
+        // Iniciar sincronización de likes
+        loadLikes();
 
 
         if (galleryUnsubscribe) {
