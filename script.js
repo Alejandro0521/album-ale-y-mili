@@ -2132,14 +2132,84 @@ document.addEventListener('DOMContentLoaded', function () {
             if (saved) {
                 const images = JSON.parse(saved);
                 if (Array.isArray(images)) {
+                    // Para detectar duplicados, usamos un Set de IDs y URLs ya existentes
+                    const existingIds = new Set();
+                    const existingUrls = new Set();
+
+                    // Recopilar IDs y URLs de elementos existentes en la galería
+                    document.querySelectorAll('.gallery-item').forEach(item => {
+                        const docId = item.getAttribute('data-doc-id');
+                        if (docId) existingIds.add(docId);
+
+                        const img = item.querySelector('img');
+                        const video = item.querySelector('video source');
+                        if (img && img.src) existingUrls.add(img.src);
+                        if (video && video.src) existingUrls.add(video.src);
+                    });
+
                     // Cargar en orden inverso para que las más recientes aparezcan primero
+                    // Pero solo si no existen ya
                     images.reverse().forEach(imageData => {
-                        addImageToGallery(imageData);
+                        const id = imageData.id || '';
+                        const url = imageData.imageUrl || imageData.videoUrl || '';
+
+                        // Verificar si ya existe por ID o URL
+                        const existsById = id && existingIds.has(id);
+                        const existsByUrl = url && existingUrls.has(url);
+
+                        if (!existsById && !existsByUrl) {
+                            addImageToGallery(imageData);
+                            // Agregar al set para evitar duplicados dentro de la misma carga
+                            if (id) existingIds.add(id);
+                            if (url) existingUrls.add(url);
+                        } else {
+                            console.log(`⚠️ Elemento duplicado omitido: ${imageData.title || id}`);
+                        }
                     });
                 }
             }
         } catch (err) {
             console.warn('Error cargando imágenes guardadas:', err);
+        }
+    }
+
+    // Limpiar duplicados del localStorage de imágenes subidas
+    function cleanupDuplicateImages() {
+        try {
+            const saved = localStorage.getItem(UPLOADED_IMAGES_KEY);
+            if (!saved) return;
+
+            const images = JSON.parse(saved);
+            if (!Array.isArray(images)) return;
+
+            const seenIds = new Set();
+            const seenUrls = new Set();
+            const uniqueImages = [];
+            let removedCount = 0;
+
+            images.forEach(imageData => {
+                const id = imageData.id || '';
+                const url = imageData.imageUrl || imageData.videoUrl || '';
+
+                // Verificar si ya vimos este ID o URL
+                const duplicateById = id && seenIds.has(id);
+                const duplicateByUrl = url && seenUrls.has(url);
+
+                if (!duplicateById && !duplicateByUrl) {
+                    uniqueImages.push(imageData);
+                    if (id) seenIds.add(id);
+                    if (url) seenUrls.add(url);
+                } else {
+                    removedCount++;
+                }
+            });
+
+            if (removedCount > 0) {
+                localStorage.setItem(UPLOADED_IMAGES_KEY, JSON.stringify(uniqueImages));
+                console.log(`🧹 Se eliminaron ${removedCount} imágenes duplicadas del localStorage`);
+            }
+        } catch (err) {
+            console.warn('Error limpiando duplicados:', err);
         }
     }
 
@@ -2396,6 +2466,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // Cargar imágenes guardadas al iniciar
+    cleanupDuplicateImages(); // Limpiar duplicados primero
     loadSavedImages();
 
     // Si Firebase está habilitado, escuchar cambios en tiempo real
