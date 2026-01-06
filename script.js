@@ -2469,27 +2469,9 @@ document.addEventListener('DOMContentLoaded', function () {
     cleanupDuplicateImages(); // Limpiar duplicados primero
     loadSavedImages();
 
-    // Si Firebase está habilitado, escuchar cambios en tiempo real
-    if (firebaseEnabled && firebaseDb) {
-        try {
-            firebaseDb.collection('gallery')
-                .orderBy('uploadedAt', 'desc')
-                .onSnapshot((snapshot) => {
-                    snapshot.docChanges().forEach((change) => {
-                        if (change.type === 'added') {
-                            const data = change.doc.data();
-                            // Verificar que no esté ya en la galería
-                            const existingItem = document.querySelector(`[data-doc-id="${data.id}"]`);
-                            if (!existingItem && data.imageUrl) {
-                                addImageToGallery(data);
-                            }
-                        }
-                    });
-                });
-        } catch (err) {
-            console.warn('Error configurando listener de Firebase:', err);
-        }
-    }
+
+    // NOTA: Listener de Firebase para 'gallery' ya está configurado en startRealtimeGallery()
+    // No se necesita un segundo listener aquí que causaría duplicados
 
     // =====================================================
     // MENÚ FAB EXPANDIBLE
