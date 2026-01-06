@@ -1383,7 +1383,24 @@ document.addEventListener('DOMContentLoaded', function () {
     function renderDynamicGallery(items) {
         if (!galleryContainer) return;
 
+        // Primero: eliminar items marcados como dinámicos
         galleryContainer.querySelectorAll('.gallery-item[data-dynamic="true"]').forEach(el => el.remove());
+
+        // Segundo: recopilar URLs de los items que vamos a agregar para eliminar duplicados existentes
+        if (items && items.length) {
+            const newUrls = new Set(items.map(i => i.mediaUrl || i.imageUrl || '').filter(u => u));
+
+            // Eliminar items existentes que tienen URLs que coinciden con los nuevos items (duplicados de localStorage)
+            galleryContainer.querySelectorAll('.gallery-item').forEach(el => {
+                const img = el.querySelector('img');
+                const video = el.querySelector('video source');
+                const existingUrl = (img && img.src) || (video && video.src) || '';
+                if (existingUrl && newUrls.has(existingUrl)) {
+                    console.log(`🧹 Eliminando duplicado de localStorage: ${existingUrl.substring(0, 50)}...`);
+                    el.remove();
+                }
+            });
+        }
 
         if (!items || !items.length) {
             refreshGalleryItems();
@@ -2107,6 +2124,28 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Agregar imagen a la galería
     function addImageToGallery(imageData) {
+        // Verificar si ya existe por ID
+        const existingById = imageData.id ? document.querySelector(`[data-doc-id="${imageData.id}"]`) : null;
+        if (existingById) {
+            console.log(`⚠️ Imagen ya existe por ID: ${imageData.id}`);
+            return null;
+        }
+
+        // Verificar si ya existe por URL
+        const imageUrl = imageData.imageUrl || imageData.videoUrl || '';
+        if (imageUrl) {
+            const allItems = document.querySelectorAll('.gallery-item');
+            for (const item of allItems) {
+                const img = item.querySelector('img');
+                const video = item.querySelector('video source');
+                const existingUrl = (img && img.src) || (video && video.src) || '';
+                if (existingUrl === imageUrl) {
+                    console.log(`⚠️ Imagen ya existe por URL: ${imageUrl.substring(0, 50)}...`);
+                    return null;
+                }
+            }
+        }
+
         const newItem = createGalleryItem(imageData);
 
         // Insertar al inicio de la galería
