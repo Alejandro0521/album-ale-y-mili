@@ -1383,8 +1383,14 @@ document.addEventListener('DOMContentLoaded', function () {
     function renderDynamicGallery(items) {
         if (!galleryContainer) return;
 
-        // Primero: eliminar items marcados como dinámicos
+        // Primero: eliminar items marcados como dinámicos de la galería principal
         galleryContainer.querySelectorAll('.gallery-item[data-dynamic="true"]').forEach(el => el.remove());
+
+        // También eliminar items dinámicos de la grid de poemas
+        const poemGrid = document.querySelector('.poem-grid');
+        if (poemGrid) {
+            poemGrid.querySelectorAll('.poem-card[data-dynamic="true"]').forEach(el => el.remove());
+        }
 
         // Segundo: recopilar URLs de los items que vamos a agregar para eliminar duplicados existentes
         if (items && items.length) {
@@ -2071,30 +2077,43 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Función para crear un elemento de galería
     function createGalleryItem(imageData) {
-        const item = document.createElement('div');
-        item.className = 'gallery-item';
-        item.setAttribute('data-category', imageData.category || 'nosotros');
-        item.setAttribute('data-doc-id', imageData.id || `uploaded-${Date.now()}`);
+        let item;
 
+        // Si es poema, usar estructura de article.poem-card para la grid de poemas
         if (imageData.category === 'poemas') {
+            item = document.createElement('article');
+            item.className = 'poem-card';
+            item.setAttribute('data-doc-id', imageData.id || `uploaded-${Date.now()}`);
+            item.setAttribute('data-dynamic', 'true'); // IMPORTANTE: Marcar como dinámico para limpieza
+
+            // Estructura visual similar a los items estáticos pero con capacidades dinámicas
             item.innerHTML = `
-                <div class="photo-container poem-container">
-                    <img src="${imageData.imageUrl}" alt="${imageData.title || 'Fondo de poema'}" class="poem-bg">
-                    <div class="poem-overlay-text">
-                        <p>${imageData.description ? imageData.description.replace(/\n/g, '<br>') : ''}</p>
-                    </div>
+                <div class="poem-media">
+                    <img src="${imageData.imageUrl}" alt="${imageData.title || 'Poema'}" loading="lazy">
+                    <div class="poem-overlay-text" style="display:none;">${imageData.description || ''}</div>
+                    
+                    <!-- Botones de acción flotantes para poemas -->
                     <div class="photo-overlay">
                         <button class="edit-btn" title="Editar"><i class="fas fa-pen"></i></button>
                         <button class="like-btn"><i class="far fa-heart"></i></button>
                         <button class="download-btn"><i class="fas fa-download"></i></button>
                     </div>
                 </div>
-                <div class="photo-info">
+                <footer class="poem-meta">
                     <h3>${imageData.title || 'Poema'}</h3>
-                    <p class="photo-location"><i class="fas fa-feather-alt"></i> ${imageData.location || 'Inspiración'}</p>
-                </div>
+                    <span>${imageData.description ? (imageData.description.length > 50 ? imageData.description.substring(0, 50) + '...' : imageData.description) : 'Versos dedicados'}</span>
+                </footer>
             `;
-        } else if (imageData.mediaType === 'video') {
+            return item;
+        }
+
+        // Para el resto de items, usar div.gallery-item estándar
+        item = document.createElement('div');
+        item.className = 'gallery-item';
+        item.setAttribute('data-category', imageData.category || 'nosotros');
+        item.setAttribute('data-doc-id', imageData.id || `uploaded-${Date.now()}`);
+
+        if (imageData.mediaType === 'video') {
             item.innerHTML = `
                 <div class="photo-container">
                     <video controls src="${imageData.imageUrl}"></video>
@@ -2155,7 +2174,29 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const newItem = createGalleryItem(imageData);
 
-        // Insertar al inicio de la galería
+        // LÓGICA DE INSERCIÓN DIRIGIDA
+
+        // 1. Si es un poema, insertar en la Grid de Poemas
+        if (imageData.category === 'poemas') {
+            const poemGrid = document.querySelector('.poem-grid');
+            if (poemGrid) {
+                // Insertar al inicio de la grid de poemas
+                if (poemGrid.firstChild) {
+                    poemGrid.insertBefore(newItem, poemGrid.firstChild);
+                } else {
+                    poemGrid.appendChild(newItem);
+                }
+
+                // Enlazar eventos para el nuevo item de poema
+                bindLikeButtons(newItem);
+                bindDownloadButtons(newItem);
+                // No llamamos a refreshGalleryItems() ni refreshMapMarkers() para poemas
+                // ya que no están en el contenedor principal ni en el mapa
+                return newItem;
+            }
+        }
+
+        // 2. Si NO es poema, insertar en la Galería Principal
         if (galleryContainer && galleryContainer.firstChild) {
             galleryContainer.insertBefore(newItem, galleryContainer.firstChild);
         } else if (galleryContainer) {
