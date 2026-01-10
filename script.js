@@ -340,9 +340,20 @@ document.addEventListener('DOMContentLoaded', function () {
 
             const filterValue = button.getAttribute('data-filter');
 
+            if (filterValue === 'roblox' || filterValue === 'regalitos') {
+                galleryContainer.classList.add('masonry-layout');
+            } else {
+                galleryContainer.classList.remove('masonry-layout');
+            }
+
             galleryItems.forEach(item => {
-                if (filterValue === 'all' || item.getAttribute('data-category') === filterValue) {
+                const itemCategory = item.getAttribute('data-category');
+
+                // Normalizar checks
+                if (filterValue === 'all') {
                     item.style.display = 'block';
+                } else if (itemCategory === filterValue) {
+                    item.style.display = 'inline-block'; // Needed for masonry
                 } else {
                     item.style.display = 'none';
                 }
