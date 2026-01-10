@@ -1810,12 +1810,19 @@ document.addEventListener('DOMContentLoaded', function () {
         // Procesar items de Firebase y fallback
         [...firebaseItems, ...fallbackItems].forEach(item => {
             if (item.id && !addedIds.has(item.id)) {
-                // Usar date si existe, sino usar uploadedAt
-                const itemDate = item.date || item.uploadedAt;
+                // PRIORIDAD: 1) Fecha editada en storedStaticEdits, 2) date del item, 3) uploadedAt
+                const editedData = storedStaticEdits[item.id];
+                const editedDate = editedData && editedData.date ? editedData.date : null;
+                const editedTitle = editedData && editedData.title ? editedData.title : null;
+
+                // Usar fecha editada primero, luego date del item, luego uploadedAt
+                const itemDate = editedDate || item.date || item.uploadedAt;
+
                 if (isValidDate(itemDate)) {
                     // Crear copia con campos normalizados
                     allItems.push({
                         ...item,
+                        title: editedTitle || item.title, // Usar título editado si existe
                         date: itemDate,
                         mediaUrl: item.mediaUrl || item.imageUrl, // Normalizar campo de imagen
                         mediaType: item.mediaType || 'image' // Default a imagen
