@@ -2080,7 +2080,10 @@ document.addEventListener('DOMContentLoaded', function () {
         let item;
 
         // Si es poema, usar estructura de article.poem-card para la grid de poemas
-        if (imageData.category === 'poemas') {
+        // Si es poema, usar estructura de article.poem-card para la grid de poemas
+        const cat = (imageData.category || '').toLowerCase().trim();
+        if (cat === 'poemas' || cat === 'poema') {
+            console.log('📝 Creando carta de poema para:', imageData.title);
             item = document.createElement('article');
             item.className = 'poem-card';
             item.setAttribute('data-doc-id', imageData.id || `uploaded-${Date.now()}`);
@@ -2176,10 +2179,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
         // LÓGICA DE INSERCIÓN DIRIGIDA
 
+        // LÓGICA DE INSERCIÓN DIRIGIDA
+
         // 1. Si es un poema, insertar en la Grid de Poemas
-        if (imageData.category === 'poemas') {
+        const cat = (imageData.category || '').toLowerCase().trim();
+        if (cat === 'poemas' || cat === 'poema') {
             const poemGrid = document.querySelector('.poem-grid');
             if (poemGrid) {
+                console.log('✨ Insertando poema en grid:', imageData.title);
                 // Insertar al inicio de la grid de poemas
                 if (poemGrid.firstChild) {
                     poemGrid.insertBefore(newItem, poemGrid.firstChild);
