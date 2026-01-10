@@ -2175,6 +2175,23 @@ document.addEventListener('DOMContentLoaded', function () {
                     <span>${imageData.description ? (imageData.description.length > 50 ? imageData.description.substring(0, 50) + '...' : imageData.description) : 'Versos dedicados'}</span>
                 </footer>
             `;
+
+            // [NEW] Detectar si es horizontal para cambiar el estilo
+            const img = item.querySelector('img');
+            if (img) {
+                const checkOrientation = () => {
+                    if (img.naturalWidth > img.naturalHeight) {
+                        item.classList.add('is-landscape');
+                    }
+                };
+
+                if (img.complete) {
+                    checkOrientation();
+                } else {
+                    img.onload = checkOrientation;
+                }
+            }
+
             return item;
         }
 

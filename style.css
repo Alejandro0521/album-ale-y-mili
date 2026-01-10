@@ -555,17 +555,28 @@ main {
 
 .poem-media {
     position: relative;
-    height: auto;
-    /* Remove fixed aspect ratio */
+    aspect-ratio: 3 / 4;
+    /* Default uniform size for vertical poems */
     overflow: hidden;
 }
 
 .poem-media img {
     width: 100%;
-    height: auto;
-    /* Allow natural height */
-    object-fit: contain;
-    /* Show full image */
+    height: 100%;
+    object-fit: cover;
+    /* Default crop for vertical */
+}
+
+/* Modificador para poemas horizontales */
+.poem-card.is-landscape .poem-media {
+    aspect-ratio: auto !important;
+    /* Adapt to image */
+    height: auto !important;
+}
+
+.poem-card.is-landscape .poem-media img {
+    height: auto !important;
+    object-fit: contain !important;
 }
 
 .poem-meta {
