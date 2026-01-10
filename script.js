@@ -33,6 +33,39 @@ document.addEventListener('DOMContentLoaded', function () {
     const mapContainer = document.getElementById('memoriesMap');
     let galleryItems = Array.from(document.querySelectorAll('.gallery-item'));
 
+    // --- Drag-to-Scroll Logic for Filter Container ---
+    const filterContainer = document.querySelector('.filter-container');
+    if (filterContainer) {
+        let isDown = false;
+        let startX;
+        let scrollLeft;
+
+        filterContainer.addEventListener('mousedown', (e) => {
+            isDown = true;
+            filterContainer.classList.add('active'); // Optional: for styling active state
+            startX = e.pageX - filterContainer.offsetLeft;
+            scrollLeft = filterContainer.scrollLeft;
+        });
+
+        filterContainer.addEventListener('mouseleave', () => {
+            isDown = false;
+            filterContainer.classList.remove('active');
+        });
+
+        filterContainer.addEventListener('mouseup', () => {
+            isDown = false;
+            filterContainer.classList.remove('active');
+        });
+
+        filterContainer.addEventListener('mousemove', (e) => {
+            if (!isDown) return;
+            e.preventDefault(); // Prevent selection
+            const x = e.pageX - filterContainer.offsetLeft;
+            const walk = (x - startX) * 2; // Scroll-fast multiplier
+            filterContainer.scrollLeft = scrollLeft - walk;
+        });
+    }
+
     const locationCoordinates = {
         'acuario inbursa': { lat: 19.4399, lng: -99.2090 },
         'acuario inbursa cdmx': { lat: 19.4399, lng: -99.2090 },

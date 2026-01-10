@@ -851,6 +851,14 @@ main {
     scrollbar-width: none;
     margin-left: auto;
     margin-right: auto;
+    cursor: grab;
+    /* Indicate draggable */
+    user-select: none;
+    /* Prevent text selection while dragging */
+}
+
+.filter-container:active {
+    cursor: grabbing;
 }
 
 .filter-container::-webkit-scrollbar {
