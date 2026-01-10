@@ -1387,9 +1387,10 @@ document.addEventListener('DOMContentLoaded', function () {
         galleryContainer.querySelectorAll('.gallery-item[data-dynamic="true"]').forEach(el => el.remove());
 
         // También eliminar items dinámicos de la grid de poemas
-        const poemGrid = document.querySelector('.poem-grid');
-        if (poemGrid) {
-            poemGrid.querySelectorAll('.poem-card[data-dynamic="true"]').forEach(el => el.remove());
+        // Usamos una variable única para referirnos a la grid
+        const poemGridContainer = document.querySelector('.poem-grid');
+        if (poemGridContainer) {
+            poemGridContainer.querySelectorAll('.poem-card[data-dynamic="true"]').forEach(el => el.remove());
         }
 
         // Segundo: recopilar URLs de los items que vamos a agregar para eliminar duplicados existentes
@@ -1416,19 +1417,40 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
-        const fragment = document.createDocumentFragment();
+        const galleryFragment = document.createDocumentFragment();
+        const poemFragment = document.createDocumentFragment();
+
         items.forEach(item => {
-            const element = createGalleryItemElement(item);
-            fragment.appendChild(element);
+            // Usar createGalleryItem que ahora maneja todo unificado
+            const element = createGalleryItem(item);
+
+            // Checar si es poema (case insensitive)
+            const cat = (item.category || '').toLowerCase().trim();
+            if (cat === 'poemas' || cat === 'poema') {
+                poemFragment.appendChild(element);
+            } else {
+                galleryFragment.appendChild(element);
+            }
+
             bindLikeButtons(element);
             bindDownloadButtons(element);
         });
 
         const anchor = galleryContainer.firstChild;
         if (anchor) {
-            galleryContainer.insertBefore(fragment, anchor);
+            galleryContainer.insertBefore(galleryFragment, anchor);
         } else {
-            galleryContainer.appendChild(fragment);
+            galleryContainer.appendChild(galleryFragment);
+        }
+
+        // Agregar poemas a su container usando la variable definida arriba
+        if (poemGridContainer) {
+            // Insertar poemas dinámicos antes de los estáticos (si hay) o al inicio
+            if (poemGridContainer.firstChild) {
+                poemGridContainer.insertBefore(poemFragment, poemGridContainer.firstChild);
+            } else {
+                poemGridContainer.appendChild(poemFragment);
+            }
         }
 
         refreshGalleryItems();
@@ -2079,7 +2101,9 @@ document.addEventListener('DOMContentLoaded', function () {
     function createGalleryItem(imageData) {
         let item;
 
-        // Si es poema, usar estructura de article.poem-card para la grid de poemas
+        // Normalizar URL de imagen/video (algunos vienen con mediaUrl, otros con imageUrl)
+        const mediaSource = imageData.imageUrl || imageData.mediaUrl || '';
+
         // Si es poema, usar estructura de article.poem-card para la grid de poemas
         const cat = (imageData.category || '').toLowerCase().trim();
         if (cat === 'poemas' || cat === 'poema') {
@@ -2092,7 +2116,7 @@ document.addEventListener('DOMContentLoaded', function () {
             // Estructura visual similar a los items estáticos pero con capacidades dinámicas
             item.innerHTML = `
                 <div class="poem-media">
-                    <img src="${imageData.imageUrl}" alt="${imageData.title || 'Poema'}" loading="lazy">
+                    <img src="${mediaSource}" alt="${imageData.title || 'Poema'}" loading="lazy">
                     <div class="poem-overlay-text" style="display:none;">${imageData.description || ''}</div>
                     
                     <!-- Botones de acción flotantes para poemas -->
@@ -2113,13 +2137,14 @@ document.addEventListener('DOMContentLoaded', function () {
         // Para el resto de items, usar div.gallery-item estándar
         item = document.createElement('div');
         item.className = 'gallery-item';
-        item.setAttribute('data-category', imageData.category || 'nosotros');
+        item.setAttribute('data-category', (imageData.category || 'nosotros').toLowerCase());
         item.setAttribute('data-doc-id', imageData.id || `uploaded-${Date.now()}`);
+        item.setAttribute('data-dynamic', 'true');
 
         if (imageData.mediaType === 'video') {
             item.innerHTML = `
                 <div class="photo-container">
-                    <video controls src="${imageData.imageUrl}"></video>
+                    <video controls src="${mediaSource}"></video>
                     <div class="photo-overlay">
                         <button class="edit-btn" title="Editar"><i class="fas fa-pen"></i></button>
                         <button class="like-btn"><i class="far fa-heart"></i></button>
@@ -2134,7 +2159,7 @@ document.addEventListener('DOMContentLoaded', function () {
         } else {
             item.innerHTML = `
                 <div class="photo-container">
-                    <img src="${imageData.imageUrl}" alt="${imageData.title || 'Foto subida'}">
+                    <img src="${mediaSource}" alt="${imageData.title || 'Foto subida'}">
                     <div class="photo-overlay">
                         <button class="edit-btn" title="Editar"><i class="fas fa-pen"></i></button>
                         <button class="like-btn"><i class="far fa-heart"></i></button>
