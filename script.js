@@ -2438,9 +2438,35 @@ document.addEventListener('DOMContentLoaded', function () {
             let thumbUrl;
 
             if (isVideo) {
-                // Subir video a Firebase Storage
+                // Subir video a Firebase Storage con monitoreo de progreso
                 const storageRef = firebaseStorage.ref().child(`uploads/videos/${Date.now()}_${file.name}`);
-                await storageRef.put(file);
+                const uploadTask = storageRef.put(file);
+                
+                // Monitorear progreso de subida
+                await new Promise((resolve, reject) => {
+                    uploadTask.on('state_changed',
+                        (snapshot) => {
+                            // Calcular progreso (20% inicial + 50% para subida)
+                            const progress = 20 + (snapshot.bytesTransferred / snapshot.totalBytes) * 50;
+                            if (uploadProgressBar) {
+                                uploadProgressBar.style.width = progress + '%';
+                            }
+                            if (uploadStatusText) {
+                                const mb = (snapshot.bytesTransferred / (1024 * 1024)).toFixed(1);
+                                const totalMb = (snapshot.totalBytes / (1024 * 1024)).toFixed(1);
+                                uploadStatusText.textContent = `Subiendo video... ${mb}MB / ${totalMb}MB`;
+                            }
+                        },
+                        (error) => {
+                            console.error('Error subiendo video:', error);
+                            reject(error);
+                        },
+                        () => {
+                            resolve();
+                        }
+                    );
+                });
+                
                 downloadURL = await storageRef.getDownloadURL();
                 thumbUrl = downloadURL; // No hay thumb automático fácil sin cloud functions
                 deleteUrl = ''; // No delete URL pública simple
@@ -2493,8 +2519,8 @@ document.addEventListener('DOMContentLoaded', function () {
             // Mostrar error visible al usuario si no es fallback silencioso
             if (typeof uploadStatusText !== 'undefined' && uploadStatusText) {
                 // Si es video y falló firebase, avisar específicamente
-                if (isMedia && (!firebaseEnabled)) {
-                    uploadStatusText.textContent = 'Guardando medio localmente (sin Firebase)...';
+                if (isVideo && (!firebaseEnabled)) {
+                    uploadStatusText.textContent = 'Guardando video localmente (sin Firebase)...';
                 } else {
                     uploadStatusText.textContent = 'Error de conexión: ' + error.message;
                 }

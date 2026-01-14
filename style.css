@@ -534,11 +534,11 @@ main {
     }
 }
 
-/* Mobile / iPhone (< 600px) */
-@media (max-width: 600px) {
+/* Mobile / iPhone (< 640px) */
+@media (max-width: 640px) {
     .poem-grid {
-        column-count: 1;
-        /* Single column for better readability */
+        column-count: 1 !important;
+        /* Force single column */
         column-gap: 1rem;
     }
 }
