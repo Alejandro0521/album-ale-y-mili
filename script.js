@@ -432,6 +432,13 @@ document.addEventListener('DOMContentLoaded', function () {
             src: 'Canciones/Manuel Medrano - Donde Nadie Pueda Ir.mp3',
             cover: 'Imagenes/cover manuel medrano.webp',
             duration: '4:20'
+        },
+        {
+            title: 'Regalo de Dios',
+            artist: 'Julión Álvarez',
+            src: 'Canciones/Julión Álvarez y su Norteño Banda - Regalo de Dios (Video Lyric).mp3',
+            cover: 'Imagenes/julion alvarez portada.webp',
+            duration: '3:45'
         }
     ];
 
