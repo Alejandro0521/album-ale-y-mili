@@ -439,6 +439,13 @@ document.addEventListener('DOMContentLoaded', function () {
             src: 'Canciones/Julión Álvarez y su Norteño Banda - Regalo de Dios (Video Lyric).mp3',
             cover: 'Imagenes/julion alvarez portada.webp',
             duration: '3:45'
+        },
+        {
+            title: 'Por Amor',
+            artist: 'Ramses Deel',
+            src: 'Canciones/Ramses Deel - Por Amor (Video Lyric) [BkbnOtpAP3s].mp3',
+            cover: 'Imagenes/ramses por amor .webp',
+            duration: '3:30'
         }
     ];
 
