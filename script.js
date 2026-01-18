@@ -418,6 +418,13 @@ document.addEventListener('DOMContentLoaded', function () {
             src: 'Canciones/Manuel Medrano - Una y Otra Vez [Lyric Video].mp3',
             cover: 'Imagenes/cover manuel medrano.webp',
             duration: '4:15'
+        },
+        {
+            title: 'Viento',
+            artist: 'Caifanes',
+            src: 'Canciones/Caifanes - Viento (Cover Audio).mp3',
+            cover: 'Imagenes/cover caifanes .webp',
+            duration: '4:30'
         }
     ];
 
