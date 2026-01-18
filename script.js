@@ -453,6 +453,13 @@ document.addEventListener('DOMContentLoaded', function () {
             src: 'Canciones/Junior H - Nací Para Amarte [Official Video].mp3',
             cover: 'Imagenes/naci para amarte-junior h.webp',
             duration: '3:15'
+        },
+        {
+            title: 'Pa Ti',
+            artist: 'Naton Vega',
+            src: 'Canciones/Naton Vega - Pa Ti (Liryc Video).mp3',
+            cover: 'Imagenes/Neton vega .jpg',
+            duration: '3:20'
         }
     ];
 
