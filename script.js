@@ -425,6 +425,13 @@ document.addEventListener('DOMContentLoaded', function () {
             src: 'Canciones/Caifanes - Viento (Cover Audio).mp3',
             cover: 'Imagenes/cover caifanes .webp',
             duration: '4:30'
+        },
+        {
+            title: 'Donde Nadie Pueda Ir',
+            artist: 'Manuel Medrano',
+            src: 'Canciones/Manuel Medrano - Donde Nadie Pueda Ir.mp3',
+            cover: 'Imagenes/cover manuel medrano.webp',
+            duration: '4:20'
         }
     ];
 
