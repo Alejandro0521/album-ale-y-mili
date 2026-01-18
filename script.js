@@ -411,6 +411,13 @@ document.addEventListener('DOMContentLoaded', function () {
             src: 'Canciones/vamos_a_mirarnos.mp3',
             cover: 'Imagenes/cover_boys_dont_cry.jpg',
             duration: '4:00'
+        },
+        {
+            title: 'Una y Otra Vez',
+            artist: 'Manuel Medrano',
+            src: 'Canciones/Manuel Medrano - Una y Otra Vez [Lyric Video].mp3',
+            cover: 'Imagenes/cover manuel medrano.webp',
+            duration: '4:15'
         }
     ];
 
@@ -2441,7 +2448,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 // Subir video a Firebase Storage con monitoreo de progreso
                 const storageRef = firebaseStorage.ref().child(`uploads/videos/${Date.now()}_${file.name}`);
                 const uploadTask = storageRef.put(file);
-                
+
                 // Monitorear progreso de subida
                 await new Promise((resolve, reject) => {
                     uploadTask.on('state_changed',
@@ -2466,7 +2473,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         }
                     );
                 });
-                
+
                 downloadURL = await storageRef.getDownloadURL();
                 thumbUrl = downloadURL; // No hay thumb automático fácil sin cloud functions
                 deleteUrl = ''; // No delete URL pública simple
