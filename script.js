@@ -446,6 +446,13 @@ document.addEventListener('DOMContentLoaded', function () {
             src: 'Canciones/Ramses Deel - Por Amor (Video Lyric) [BkbnOtpAP3s].mp3',
             cover: 'Imagenes/ramses por amor .webp',
             duration: '3:30'
+        },
+        {
+            title: 'Nací Para Amarte',
+            artist: 'Junior H',
+            src: 'Canciones/Junior H - Nací Para Amarte [Official Video].mp3',
+            cover: 'Imagenes/naci para amarte-junior h.webp',
+            duration: '3:15'
         }
     ];
 
